@@ -1,2 +1,1 @@
-# bulb
-Benchmarking Unsupervised Learning with pyBullet
+# Benchmarking Unsupervised Learning with pyBullet
