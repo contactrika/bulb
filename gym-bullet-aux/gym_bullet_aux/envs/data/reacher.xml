@@ -1,0 +1,37 @@
+<mujoco model="reacher">
+	<compiler angle="radian" inertiafromgeom="true"/>
+	<default>
+		<joint armature="1" damping="1" limited="true"/>
+		<geom contype="0" friction="1 0.1 0.1" rgba="1 0 0 1"/>
+	</default>
+	<option gravity="0 0 -9.81" integrator="RK4" timestep="0.01"/>
+	<worldbody>
+		<geom name="base_link" type="cylinder" conaffinity="0" contype="0" fromto="0 0 0 0 0 0.035" rgba="0.9 0.4 0.6 1" size=".025" />
+		<body name="shoulder" pos="0 0 .02">
+			<inertial pos="0 0 0" mass="2" diaginertia="1.66667 1.66667 1.66667"/>
+			<geom name="shoulder_link" fromto="0 0 0 0.15 0 0" rgba="1 1 0 1" size=".025" type="capsule"/>
+			<joint name="joint0" axis="0 0 1" limited="false" pos="0 0 0" type="hinge"/>
+			<body name="elbow" pos="0.15 0 0">
+				<inertial pos="0 0 0" mass="2" diaginertia="1.66667 1.66667 1.66667"/>
+				<joint name="joint1" axis="0 0 1" limited="true" pos="0 0 0" range="-3.0 3.0" type="hinge"/>
+				<geom name="elbow_link" fromto="0 0 0 0.12 0 0" rgba="0 0 1 1" size=".025" type="capsule"/>
+				<body name="wrist" pos="0.135 0 0">
+					<inertial pos="0 0 0" mass="1" diaginertia="1.66667 1.66667 1.66667"/>
+					<!-- joint name="joint2" axis="0 0 1" limited="true" pos="0 0 0" range="-0.7854 0.7854" type="hinge"/ -->
+				    <geom name="hand_link" type="capsule" fromto="0 -0.05 0. 0.0 +0.05 0" size="0.015" rgba="0 1 0 1" contype="1" conaffinity="1" />
+					<geom name="hand_center" contype="0" pos="0 0 0" rgba="0 1 0 1" size=".012" type="sphere" />
+				  <body name="fings" pos="0 0 0">
+				    <geom name="fing_l" type="capsule" fromto="0 -0.05 0. 0.05 -0.05 0" size="0.015" rgba="0 0 1 1" contype="1" conaffinity="1" />
+				    <geom name="fing_r" type="capsule" fromto="0 +0.05 0. 0.05 +0.05 0." size="0.015" rgba="0 0 1 1" contype="1" conaffinity="1" />
+					<geom name="tip_l" type="sphere" pos="0.05 -0.05 0." size="0.012" rgba="0 0 1 1" />
+					<geom name="tip_r" type="sphere" pos="0.05 0.05 0." size="0.012" rgba="0 0 1 1" />
+				  </body>
+				</body>
+			</body>
+		</body>
+	</worldbody>
+	<actuator>
+		<motor ctrllimited="true" ctrlrange="-1.0 1.0" gear="200.0" joint="joint0"/>
+		<motor ctrllimited="true" ctrlrange="-1.0 1.0" gear="200.0" joint="joint1"/>
+	</actuator>
+</mujoco>
