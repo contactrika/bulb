@@ -18,9 +18,8 @@ pip install -e .
 
 ### Usage Examples
 ```
-python -m robot_rearrange.env_demo --env_name=ReacherRearrangeViz-v1
-python -m robot_rearrange.env_demo --env_name=ReacherRearrangeDebug-v[0-3]
-python -m robot_rearrange.env_demo --env_name=ReacherRearrange-v0
+python -m gym_bullet_aux.aux_env_demo --env_name=ReacherRearrangeGeom64-v0 --num_episodes=10 --viz
+python -m gym_bullet_aux.aux_env_demo --env_name=ReacherRearrangeYcb64-v0 --num_episodes=10 --debug
 ```
 
 
