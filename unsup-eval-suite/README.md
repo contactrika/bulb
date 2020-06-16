@@ -2,8 +2,8 @@
 
 This package contains unsupervised learners (VAE, SVAE, PRED, DSA) and functionality for measuring alignment between the learned latent state and the true low-dimensional (simulator) state; also contains an interface with a PPO RL learner.
 
-![pyBullet benchmarks](plots/ant_all_err.png =210x)
-![Rearrange envs](plots/RearrangeReacher_ori_results.jpg =500x)
+![pyBullet benchmarks](plots/ant_all_err.png)
+![Rearrange envs](plots/RearrangeReacher_ori_results.jpg)
 
 ### Install
 

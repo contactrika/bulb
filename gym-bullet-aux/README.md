@@ -2,8 +2,8 @@
 
 This package contains pyBullet benchmark environments that are extended to report both high- and low-dimensional state and the new *RearrangeGeom* and *RearrangeYCB* environments.
 
-![pyBullet benchmarks](gym_bullet_aux/envs/data/img/pyBullet_benchmarks.png =250x)
-![Rearrange envs](gym_bullet_aux/envs/data/img/Rearrange_and_YCB.png =520x)
+![pyBullet benchmarks](gym_bullet_aux/envs/data/img/pyBullet_benchmarks.png)
+![Rearrange envs](gym_bullet_aux/envs/data/img/Rearrange_and_YCB.png)
 
 ### Installation
 
