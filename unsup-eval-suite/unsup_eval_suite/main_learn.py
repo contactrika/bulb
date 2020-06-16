@@ -10,9 +10,6 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import time
 
-# Need to import early, otherwise ray complains about pickle5
-import ray
-
 import numpy as np
 np.set_printoptions(precision=2, linewidth=150, threshold=None, suppress=True)
 import torch
