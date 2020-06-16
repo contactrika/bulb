@@ -315,7 +315,6 @@ class BlockOnInclineEnv(gym.Env):
             if self.debug_level>0:
                 print('clipping at step', self.stepnum, 'raw_flat_state')
                 print(raw_flat_state)
-                input('cont')
             raw_flat_state = np.clip(raw_flat_state, mins, maxs)
         flat_state = (raw_flat_state - mins)/(maxs-mins)
         assert((flat_state>=0).all() and (flat_state<=1).all())
