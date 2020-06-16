@@ -8,9 +8,9 @@ import numpy as np
 import torch
 
 import gym
-from baselines.common.vec_env import VecEnvWrapper
-from baselines.common.vec_env.dummy_vec_env import DummyVecEnv
-from baselines.common.vec_env.shmem_vec_env import ShmemVecEnv
+from .baselines_common.vec_env import VecEnvWrapper
+from .baselines_common.vec_env.dummy_vec_env import DummyVecEnv
+from .baselines_common.vec_env.shmem_vec_env import ShmemVecEnv
 
 import gym_bullet_aux
 
