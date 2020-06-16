@@ -18,8 +18,10 @@ pip install -e .
 
 ### Usage Examples
 ```
-python -m gym_bullet_aux.aux_env_demo --env_name=ReacherRearrangeGeom64-v0 --num_episodes=10 --viz
-python -m gym_bullet_aux.aux_env_demo --env_name=ReacherRearrangeYcb64-v0 --num_episodes=10 --debug
+python -m gym_bullet_aux.aux_env_demo --env_name=ReacherRearrangeGeom64-v0 --num_episodes=10 --debug --viz
+python -m gym_bullet_aux.aux_env_demo --env_name=FrankaRearrangeYcb64-v3 --debug --viz
+python -m gym_bullet_aux.aux_env_demo --env_name=BlockOnInclineYcb-v0 --debug --viz
+python -m gym_bullet_aux.aux_env_demo --env_name=BlockOnInclineYcb-v3 --debug --viz
 ```
 
 
