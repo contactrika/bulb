@@ -170,9 +170,9 @@ class AuxBulletEnv(gym.Env):
             width=width, height=height,
             viewMatrix=self._view_mat, projectionMatrix=self._proj_mat,
             renderer=pybullet.ER_BULLET_HARDWARE_OPENGL)
-        if debug>0:
-            import imageio
-            imageio.imwrite('/tmp/tmp_obs.png', rgba_px)
+        #if debug>0:
+        #    import imageio
+        #    imageio.imwrite('/tmp/tmp_obs.png', rgba_px)
         if self.obs_torch_float_format:
             obs = rgba_px[:,:,0:3].astype(float)/255.
             obs = obs.transpose((2,0,1))  # HxWxRGB float32

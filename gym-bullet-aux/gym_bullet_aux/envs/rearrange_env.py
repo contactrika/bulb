@@ -333,9 +333,9 @@ class RearrangeEnv(gym.Env):
     def render_obs(self, debug=False):
         if self.obs_resolution is None: return None
         rgba_px = self.robot.render_debug(width=self.obs_resolution)
-        if debug:
-            import imageio
-            imageio.imwrite('/tmp/obs_st'+str(self.stepnum)+'.png', rgba_px)
+        #if debug:
+        #    import imageio
+        #    imageio.imwrite('/tmp/obs_st'+str(self.stepnum)+'.png', rgba_px)
         float_obs = rgba_px[:,:,0:3].astype(float)/255.
         float_obs = float_obs.transpose((2,0,1))
         return float_obs
