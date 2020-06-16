@@ -6,11 +6,6 @@ import numpy as np
 
 import torch
 
-import gpytorch
-from gpytorch.means import ConstantMean
-from gpytorch.kernels import ScaleKernel, RBFKernel, InducingPointKernel
-from gpytorch.distributions import MultivariateNormal
-
 from ..svae.svae_nets import make_MLP
 
 
