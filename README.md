@@ -1,7 +1,7 @@
 ## Benchmarking Unsupervised Learning with pyBullet
 
 This repository contains code for the Evaluation Suite presented in:
-*Analytic Manifold Learning: Unifying and Evaluating Representations for Continuous Control*
+*"Analytic Manifold Learning: Unifying and Evaluating Representations for Continuous Control"*
 ```
 @article{antonova2020analytic,
   title={Analytic Manifold Learning: Unifying and Evaluating Representations for Continuous Control},
@@ -10,6 +10,10 @@ This repository contains code for the Evaluation Suite presented in:
   year={2020}
 }
 ```
+
+![pyBullet benchmarks](unsup-eval-suite/plots/ant_all_err.png)
+![pyBullet benchmarks](gym-bullet-aux/gym_bullet_aux/envs/data/img/pyBullet_benchmarks.png)
+![Rearrange envs](gym-bullet-aux/gym_bullet_aux/envs/data/img/Rearrange_and_YCB.png)
 
 There are two packages in this repository:
 
