@@ -20,7 +20,6 @@ torch.set_printoptions(precision=4, linewidth=150, threshold=500000)
 import gym
 
 from .svae.svae_core import SVAE, DSA
-from .ulo.ulo_core import ULO
 
 from .all_args import get_all_args
 from .rl.agent_random import AgentRandom
