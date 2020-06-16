@@ -31,7 +31,7 @@ from .utils.viz import viz_samples
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description="RLLib")
+    parser = argparse.ArgumentParser(description="Analyze")
     parser.add_argument('--load_checkpt', type=str, default=None,
                         help='Load checkpoint to play or analyze')
     parser.add_argument('--gpu', type=int, default=0, help='GPU ID')

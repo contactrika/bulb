@@ -24,7 +24,6 @@ from .svae.svae_core import SVAE, DSA
 from .all_args import get_all_args
 from .rl.agent_random import AgentRandom
 from .rl.agent_ppo import AgentPPO
-from .rl.agent_rllib import AgentRLLib
 from .utils.data_utils import extract_tgts
 from .utils.env_utils import (
     make_vec_envs, aux_from_infos, make_aux_action, get_act_sz)

@@ -11,7 +11,6 @@ import torch
 
 from ..rl.agent_random import AgentRandom
 from ..rl.agent_ppo import AgentPPO
-from ..rl.agent_rllib import AgentRLLib
 
 # imports used dynamically
 from ..svae.svae_core import SVAE, DSA

@@ -67,11 +67,8 @@ def get_all_args():
                         help='Class name from [unsup_algo]/*_params.py')
     # Arguments for the agent (e.g. RL actor+learner, MPC actor, random actor).
     parser.add_argument('--agent_algo', type=str, default='Random',
-                        choices=['Random', 'PPO', 'RLLib'],
+                        choices=['Random', 'PPO'],
                         help='Short name for RL algo')
-    parser.add_argument('--agent_rllib_algo', type=str, default='PPO',
-                        choices=['PPO', 'A3C', 'SAQ', 'Impala', 'Apex', 'DQN'],
-                        help='RL algo to load for RLLib')
     parser.add_argument('--agent_rollout_len', type=int, default=None,  # auto
                         help='Length of RL rollouts')
     parser.add_argument('--agent_max_replay_rollouts', type=int, default=5000,
