@@ -46,6 +46,9 @@ See results in Tensorboard:
 tensorboard --logdir_spec=a:~/Desktop/tmp --port=6008 --bind_all  --samples_per_plugin images=100
 ```
 
+![tensorboard_screenshot](plots/tensorboard_screenshot.png)
+
+
 <br />
 <hr />
 
