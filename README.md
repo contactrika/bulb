@@ -11,8 +11,6 @@ This repository contains code for the Evaluation Suite presented in:
 }
 ```
 
-![pyBullet benchmarks](unsup-eval-suite/plots/ant_all_err.png)
-![pyBullet benchmarks](gym-bullet-aux/gym_bullet_aux/envs/data/img/pyBullet_benchmarks.png)
 ![Rearrange envs](gym-bullet-aux/gym_bullet_aux/envs/data/img/Rearrange_and_YCB.png)
 
 There are two packages in this repository:
