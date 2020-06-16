@@ -91,11 +91,11 @@ class RearrangeEnv(gym.Env):
         self.num_action_repeats = 4 # apply same torque action k num sim steps
         self.obs_resolution = obs_resolution
         self.debug_level = debug_level
-        self.ndof = self.robot.get_maxforce().shape[0]
-        self.idle_dofs = np.zeros(0)
-        if self.ndof == 9:  # 7DoF manipulator with 2 finger joints
+        self.max_torque = self.robot.get_maxforce()
+        self.ndof = self.max_torque.shape[0]
+        if self.ndof == 9:  # 7DoF manipulator with 2 last joints being fingers
             self.ndof = 7
-            self.idle_dofs = np.zeros(2)  # ignore fingers
+            self.max_torque[7:] = 0  # ignore finger joints
         # Load table or borders.
         data_folder = os.path.split(__file__)[0]
         #sim.resetBasePositionAndOrientation(
@@ -162,9 +162,9 @@ class RearrangeEnv(gym.Env):
         else:
             self.observation_space = gym.spaces.Box(
                 0.0, 1.0, shape=[len(self.aux_nms)], dtype=np.float32)
-        get_maxforce = max(self.robot.get_maxforce())
         self.action_space = gym.spaces.Box(
-            -get_maxforce, get_maxforce, shape=[self.ndof], dtype=np.float32)
+            -self.max_torque[:self.ndof], self.max_torque[:self.ndof],
+            shape=[self.ndof], dtype=np.float32)
         super(RearrangeEnv, self).__init__()
         # TODO: make same interface to enable RL on low-dim state as Aux envs.
         # Note: in this env aux state in this envs is normalized to [-1,1]
@@ -272,10 +272,7 @@ class RearrangeEnv(gym.Env):
                 self.object_ids, self.init_object_poses, self.init_object_quats)
         # Make initial random actions, then return the starting state.
         for t in range(self.num_init_rnd_act):
-            max_torque = self.robot.get_maxforce()
-            if len(self.idle_dofs)>0: max_torque = max_torque[:-len(self.idle_dofs)]
-            torque = (np.random.rand(max_torque.shape[0])-0.5)*max_torque
-            torque = np.clip(torque, -max_torque, max_torque)
+            torque = (np.random.rand(self.max_torque.shape[0])-0.5)*self.max_torque
             self.robot.apply_joint_torque(torque)
         pixel_obs, _ = self.get_obs_and_aux()
         return pixel_obs
@@ -285,11 +282,10 @@ class RearrangeEnv(gym.Env):
             obs, aux = self.get_obs_and_aux()
             return obs, 0.0, self.done, {'aux': aux, 'aux_nms': self.aux_nms}
         # Assume: robot is torque controlled and action is scaled to [0,1]
-        max_torque = self.robot.get_maxforce()
-        if len(self.idle_dofs)>0: max_torque = max_torque[:-len(self.idle_dofs)]
-        torque = (action-0.5)*max_torque
-        torque = np.clip(torque, -max_torque, max_torque)
-        if len(self.idle_dofs)>0: torque = np.hstack([torque, self.idle_dofs])
+        torque = np.hstack(
+            [action, np.zeros(self.max_torque.shape[0]-self.ndof)])
+        torque = np.clip((torque-0.5)*self.max_torque,
+                         -self.max_torque, self.max_torque)
         if self.debug_level>0 and self.stepnum%50==0:
             print('step', self.stepnum, 'action', action, 'torque', torque)
         # Apply torque action to joints
@@ -406,7 +402,7 @@ class RearrangeEnv(gym.Env):
             flat_state = float(self.version)/10
         # Add robot qpos.
         qpos = self.robot.get_qpos()
-        assert((qpos>=-np.pi).all() and (qpos<=np.pi).all())
+        #assert((qpos>=-np.pi).all() and (qpos<=np.pi).all())
         qpos_all_sin = np.sin(qpos).reshape(-1,1)
         qpos_all_cos = np.cos(qpos).reshape(-1,1)
         qpos_all_sin_cos = np.hstack([qpos_all_sin, qpos_all_cos])
