@@ -12,8 +12,6 @@ import time
 
 import numpy as np
 np.set_printoptions(precision=4, linewidth=150, threshold=np.inf, suppress=True)
-import torch
-torch.set_printoptions(precision=4, linewidth=150, threshold=None, sci_mode=False)
 
 import gym
 import pybullet
