@@ -252,23 +252,6 @@ def analyze(envs, replay_rlts, agent, unsup, test_obs_act_lowdim_1toL,
     anlz_dict, anlz_dict_hist = analyze_alignment(
         train_latents, train_lowdims, test_latents, test_lowdims,
         test_curr_latents, test_curr_lowdims, aux_nms, args)
-    # TODO: move to fxn
-    # Plot
-    import matplotlib.pyplot as plt
-    import matplotlib.gridspec as gridspec
-    fig = plt.figure(figsize = (10,7))
-    fig.tight_layout(); plt.tight_layout()
-    ax = fig.add_subplot(111)
-    irreg_ratios = anlz_dict_hist['anlz_test_irreg_ratios']
-    irreg_dists = anlz_dict_hist['anlz_test_irreg_dists']
-    print('irreg_ratios', irreg_ratios.size())
-    print('irreg_dists', irreg_dists.size())
-    ax.scatter(irreg_dists[:20000].detach().cpu().numpy(),
-               irreg_ratios[:20000].detach().cpu().numpy(), s=1)
-    ax.set_xlabel('lowdim dists')
-    ax.set_ylabel('log(latentout/lodwim)')
-    tb_writer.add_figure('anlz_test_irreg', fig, epoch)
-    # end TODO
     if args.ulo_loss_fxn!='':
         res = extract_tgts(*test_obs_act_lowdim_1toL,
                            unsup.pr.hist, unsup.pr.past, unsup.pr.pred)
