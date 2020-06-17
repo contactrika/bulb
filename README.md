@@ -1,12 +1,12 @@
 ## Benchmarking Unsupervised Learning with pyBullet
 
 This repository contains code for the Evaluation Suite presented in:
-*"Analytic Manifold Learning: Unifying and Evaluating Representations for Continuous Control"*
+[*Analytic Manifold Learning: Unifying and Evaluating Representations for Continuous Control*](https://arxiv.org/abs/2006.08718)
 ```
 @article{antonova2020analytic,
   title={Analytic Manifold Learning: Unifying and Evaluating Representations for Continuous Control},
   author={Rika Antonova and Maksim Maydanskiy and Danica Kragic and Sam Devlin and Katja Hofmann},
-  journal={arXiv preprint arXiv:TODO},
+  journal={arXiv preprint arXiv:2006.08718},
   year={2020}
 }
 ```
