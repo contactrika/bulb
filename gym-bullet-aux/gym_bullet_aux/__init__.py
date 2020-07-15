@@ -11,27 +11,28 @@ gym_envs = ['CartPole', 'InvertedPendulum', 'InvertedDoublePendulum',
             'HumanoidFlagrun', 'HumanoidFlagrunHarder',
             'Reacher', 'Kuka']
 v1_envs = ['CartPole']
-resolution = 64
 for base_env_name in gym_envs:
     for debug_level in [0, 1, 2]:
-        sfx = '' if debug_level<=0 else 'Debug' if debug_level<=1 else 'Viz'
         for env_v in [0,1]:
             if env_v==0 and base_env_name=='CartPole': continue  # v1 only
             if env_v==1 and base_env_name not in v1_envs: continue
-            env_id = 'Aux'+base_env_name+'BulletEnv'+sfx+'-v'+str(env_v)
-            kwargs={'base_env_name':base_env_name, 'env_v':env_v,
-                    'obs_resolution':resolution, 'random_colors':False,
-                    'visualize':(debug_level>=2), 'debug_level':debug_level}
-            register(id=env_id, entry_point='gym_bullet_aux.envs:AuxBulletEnv',
-                     kwargs=kwargs)
-            if base_env_name.startswith(('CartPole', 'Inverted', 'Walker2D',
-                                         'HalfCheetah', 'Ant')):
-                env_id = 'Aux'+base_env_name+'ClrBulletEnv'+sfx+'-v'+str(env_v)
+            for resolution in [None, 64]:
+                sfx0 = 'LD' if resolution is None else '' # str(resolution)
+                sfx1 = '' if debug_level<=0 else 'Debug' if debug_level<=1 else 'Viz'
+                env_id = 'Aux'+base_env_name+sfx0+'BulletEnv'+sfx1+'-v'+str(env_v)
                 kwargs={'base_env_name':base_env_name, 'env_v':env_v,
-                        'obs_resolution':resolution, 'random_colors':True,
+                        'obs_resolution':resolution, 'random_colors':False,
                         'visualize':(debug_level>=2), 'debug_level':debug_level}
                 register(id=env_id, entry_point='gym_bullet_aux.envs:AuxBulletEnv',
                          kwargs=kwargs)
+                if base_env_name.startswith(('CartPole', 'Inverted', 'Walker2D',
+                                             'HalfCheetah', 'Ant')):
+                    env_id = 'Aux'+base_env_name+sfx0+'ClrBulletEnv'+sfx1+'-v'+str(env_v)
+                    kwargs={'base_env_name':base_env_name, 'env_v':env_v,
+                            'obs_resolution':resolution, 'random_colors':True,
+                            'visualize':(debug_level>=2), 'debug_level':debug_level}
+                    register(id=env_id, entry_point='gym_bullet_aux.envs:AuxBulletEnv',
+                             kwargs=kwargs)
 
 
 # Register rearrangement envs.
