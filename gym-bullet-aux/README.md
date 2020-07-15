@@ -23,6 +23,16 @@ python -m gym_bullet_aux.aux_env_demo --env_name=BlockOnInclineYcb-v0 --debug --
 python -m gym_bullet_aux.aux_env_demo --env_name=BlockOnInclineYcb-v3 --debug --viz
 ```
 
+### Running  Benchmarks
+
+The following behcmark environments are available:
+```AuxInvertedPendulumBulletEnv-v0, AuxInvertedDoublePendulumBulletEnv-v0, AuxInvertedPendulumSwingupBulletEnv-v0, AuxHopperBulletEnv-v0, AuxWalker2DBulletEnv-v0, AuxHalfCheetahBulletEnv-v0, AuxAntBulletEnv-v0, AuxKukaBulletEnv-v0```
+
+The above have continuous action space, ```AuxCartPoleBulletEnv-v1``` is available with discrete action space.
+
+```
+python -m gym_bullet_aux.aux_env_demo --env_name=AuxAntBulletEnv-v1 --debug --viz
+```
 
 <br />
 <hr />
