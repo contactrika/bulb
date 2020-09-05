@@ -34,6 +34,10 @@ The above have continuous action space, ```AuxCartPoleBulletEnv-v1``` is availab
 python -m gym_bullet_aux.aux_env_demo --env_name=AuxAntBulletEnv-v1 --debug --viz
 ```
 
+To get low-dimensional simulator state in observations (instead of RGB observations) add ```LD``` suffix, e.g. ```AuxInvertedPendulumLDBulletEnv-v0```.
+
+To get a version of domain that would be visualized add ```Viz``` suffix: ```AuxInvertedPendulumBulletEnvViz-v0```
+
 <br />
 <hr />
 
