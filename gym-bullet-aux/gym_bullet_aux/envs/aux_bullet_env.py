@@ -144,7 +144,6 @@ class AuxBulletEnv(gym.Env):
         info['aux'] = state
         low_dim_nms, low_dim_low, low_dim_high = self.low_dim_state_info()
         if self.random_colors and self.stalled(state, low_dim_nms): done = True
-        if self.base_env_name.startswith('InvertedPendulum'): done = False
         self.reward_accum += rwd
         if self.debug_level>0:  # print low-dim state
             print('act', action)
