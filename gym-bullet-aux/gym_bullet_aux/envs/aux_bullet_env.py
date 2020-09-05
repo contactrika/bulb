@@ -112,9 +112,11 @@ class AuxBulletEnv(gym.Env):
             print(self.observation_space, self.action_space)
             print('max_episode_steps', self._env._max_episode_steps)
 
+    def close(self):
+        self._env.unwrapped.close()
+
     def reset(self):
         self.reward_accum = 0
-        self.nsteps = 0
         self.done = False  # TODO: use to avoid losing last frame in vec envs
         obs = self._env.reset()
         if self.random_colors: self.reset_colors()
@@ -122,6 +124,10 @@ class AuxBulletEnv(gym.Env):
         # For mobile envs: could look at the robot from different angles.
         #if self._mobile:
         #    self._env.unwrapped._cam_yaw = (np.random.rand()-0.5)*360
+        if self.visualize:
+            self._sim.resetDebugVisualizerCamera(
+                self._env.unwrapped._cam_dist, self._env.unwrapped._cam_yaw,
+                self._env.unwrapped._cam_pitch, self.get_base_pos())
         return obs
 
     def step(self, action):
@@ -137,8 +143,10 @@ class AuxBulletEnv(gym.Env):
         info['aux'] = state
         low_dim_nms, low_dim_low, low_dim_high = self.low_dim_state_info()
         if self.random_colors and self.stalled(state, low_dim_nms): done = True
+        if self.base_env_name.startswith('InvertedPendulum'): done = False
         self.reward_accum += rwd
         if self.debug_level>0:  # print low-dim state
+            print('act', action)
             for i in range(len(low_dim_nms)):
                 print('{:s} {:0.4f} '.format(low_dim_nms[i], state[i]), end='')
             print('')
@@ -151,7 +159,8 @@ class AuxBulletEnv(gym.Env):
             #    print('low_dim_state', low_dim_state)
             #    assert(False)
         if done: info['episode'] = {'r':self.reward_accum}
-        if self.visualize and hasattr(self._env.unwrapped, 'camera_adjust'):
+        if self.visualize and self._mobile and \
+                hasattr(self._env.unwrapped, 'camera_adjust'):
             self._env.unwrapped.body_xyz = self.get_base_pos()
             self._env.unwrapped.camera_adjust()
         if done:
@@ -225,7 +234,7 @@ class AuxBulletEnv(gym.Env):
             nms = ['x', 'x_vel', 'theta_cos', 'theta_sin', 'theta_vel']
         elif 'InvertedDoublePendulum' in self.base_env_name:
             nms = ['x', 'x_vel', 'elbow_x',
-                   'theta_cos', 'theta_sin', 'theta0_vel',
+                   'theta_cos', 'theta_sin', 'theta_vel',
                    'theta1_cos', 'theta1_sin', 'theta1_vel']
         elif self.base_env_name.startswith(
             ('Hopper', 'Walker', 'HalfCheetah', 'Ant', 'Humanoid')):
@@ -335,9 +344,38 @@ class AuxBulletEnv(gym.Env):
                 self._sim.changeVisualShape(
                     part.bodies[part.bodyIndex],
                     part.bodyPartIndex, rgbaColor=clrs[i])
-            robot = self._env.unwrapped.robot
-
         elif 'Ant' in self.base_env_name:
             pitches = [-60, -35, -40, -20]; yaws = [-180, -20, 120, 270]
             self._env.unwrapped._cam_pitch = pitches[clr_scheme_id]
             self._env.unwrapped._cam_yaw = yaws[clr_scheme_id]
+
+    def override_state(self, low_dim_state, ids_dict=None):
+        # TODO: add support for more envs in the future.
+        assert('CartPole' in self.base_env_name or
+               'Pendulum' in self.base_env_name)
+        unwrp_env = self._env.unwrapped
+        if ids_dict is None:
+            nms, _, _ = self.low_dim_state_info()
+            ids_dict = {k: v for v, k in enumerate(nms)}
+        assert(len(ids_dict.keys())==len(low_dim_state))
+        if self.base_env_name.startswith('CartPole'):
+            self._sim.resetJointState(  # set pole pos,vel
+                unwrp_env.cartpole, 1, low_dim_state[ids_dict['theta']],
+                low_dim_state[ids_dict['theta_vel']])
+            self._sim.resetJointState(  # set cart pos,vel
+                unwrp_env.cartpole, 0, low_dim_state[ids_dict['x']],
+                low_dim_state[ids_dict['x_vel']])
+        elif 'Pendulum' in self.base_env_name:
+            unwrp_env.robot.slider.reset_current_position(
+                low_dim_state[ids_dict['x']], low_dim_state[ids_dict['x_vel']])
+            theta = np.arctan2(low_dim_state[ids_dict['theta_sin']],
+                               low_dim_state[ids_dict['theta_cos']])
+            unwrp_env.robot.j1.reset_current_position(
+                theta, low_dim_state[ids_dict['theta_vel']])
+            if 'Double' in self.base_env_name:
+                theta1 = np.arctan2(low_dim_state[ids_dict['theta1_sin']],
+                                    low_dim_state[ids_dict['theta1_cos']])
+                unwrp_env.robot.j2.reset_current_position(
+                    theta1, low_dim_state[ids_dict['theta1_vel']])
+        unwrp_env.state = self.calc_low_dim_state()
+        return None
