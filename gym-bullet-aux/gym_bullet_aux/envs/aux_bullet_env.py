@@ -298,7 +298,7 @@ class AuxBulletEnv(gym.Env):
         # Limit episode length so that we get to see various
         # color schemes within a reasonable number of env steps.
         #self._env._max_episode_steps = min(self._env._max_episode_steps, 500)
-        # Randomly select a clolor scheme.
+        # Randomly select a color scheme.
         base_clrs =  [(1,1,0,1),(0,1,1,1),(1,0,1,1),(0,0,1,1)]
         pole_clrs =  [(0,0,1,1),(0,0,0,1),(0,1,0,1),(1,0,0,1)]
         pole2_clrs = [(1,0,0,1),(0,0,1,1),(1,1,0,1),(0,0,0,1)]
@@ -345,10 +345,9 @@ class AuxBulletEnv(gym.Env):
                 self._sim.changeVisualShape(
                     part.bodies[part.bodyIndex],
                     part.bodyPartIndex, rgbaColor=clrs[i])
-        elif 'Ant' in self.base_env_name:
-            pitches = [-60, -35, -40, -20]; yaws = [-180, -20, 120, 270]
-            self._env.unwrapped._cam_pitch = pitches[clr_scheme_id]
-            self._env.unwrapped._cam_yaw = yaws[clr_scheme_id]
+        #    pitches = [-60, -35, -40, -20]; yaws = [-180, -20, 120, 270]
+        #    self._env.unwrapped._cam_pitch = pitches[clr_scheme_id]
+        #    self._env.unwrapped._cam_yaw = yaws[clr_scheme_id]
 
     def override_state(self, low_dim_state, ids_dict=None):
         # TODO: add support for more envs in the future.

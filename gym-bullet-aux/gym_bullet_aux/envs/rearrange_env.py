@@ -384,6 +384,7 @@ class RearrangeEnv(gym.Env):
 
     def sim_to_flat_state(self, bkgrnd, obj_props, obj_poses, obj_quats,
                           aux_nms_to_fill=None):
+        obj_info = []
         # Add background and static object properties (if needed)
         if self.statics_in_lowdim:
             flat_state = bkgrnd
@@ -417,7 +418,6 @@ class RearrangeEnv(gym.Env):
                 aux_nms_to_fill.append('j'+str(j)+'_sin')
                 aux_nms_to_fill.append('j'+str(j)+'_cos')
         if obj_props is None: return flat_state
-        obj_info = []
         # Add object dynamics (pos, ori).
         if ((obj_poses<RearrangeEnv.OBJ_XYZ_MINS).any() or
             (obj_poses>RearrangeEnv.OBJ_XYZ_MAXS).any()):

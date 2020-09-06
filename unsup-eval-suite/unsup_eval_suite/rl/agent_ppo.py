@@ -117,11 +117,6 @@ class AgentPPO(AgentRandom):
             prev_act = torch.cat(list(prev_act_seq), dim=1)
             prev_act = prev_act.reshape(batch_size, not_done.size(1), -1)
             prev_act = prev_act*not_done
-            if prev_qpos_seq is not None:
-                prev_qpos = torch.cat(list(prev_qpos_seq), dim=1)
-                prev_qpos = prev_qpos.reshape(batch_size, not_done.size(1), -1)
-                prev_qpos = prev_qpos*not_done
-                prev_act = torch.cat([prev_act, prev_qpos], dim=-1)
             a_1toT = torch.cat([prev_act, a_1toT], dim=1)
             prev_convfeat = torch.cat(list(prev_convfeat_seq), dim=1)
             prev_convfeat = prev_convfeat.reshape(batch_size, not_done.size(1), -1)
