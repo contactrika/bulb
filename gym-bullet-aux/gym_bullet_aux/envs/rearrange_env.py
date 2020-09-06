@@ -444,7 +444,7 @@ class RearrangeEnv(gym.Env):
                 obj_pfx = obj_shape_name+str(i)
                 if self.statics_in_lowdim:
                     for j in range(props_sz):
-                        nm = SIM_PARAM_OBJ_PROPS_NAMES[j]
+                        nm = RearrangeEnv.SIM_PARAM_OBJ_PROPS_NAMES[j]
                         aux_nms_to_fill.append('obj'+str(i)+'_prop'+str(j))
                 aux_nms_to_fill.append(obj_pfx+'_x')
                 aux_nms_to_fill.append(obj_pfx+'_y')
