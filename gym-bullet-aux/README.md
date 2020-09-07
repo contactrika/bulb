@@ -31,12 +31,43 @@ The following behcmark environments are available:
 The above have continuous action space, ```AuxCartPoleBulletEnv-v1``` is available with discrete action space.
 
 ```
-python -m gym_bullet_aux.aux_env_demo --env_name=AuxAntBulletEnv-v1 --debug --viz
+python -m gym_bullet_aux.aux_env_demo --env_name=AuxAntBulletEnv-v0 --debug --viz
 ```
 
 To get low-dimensional simulator state in observations (instead of RGB observations) add ```LD``` suffix, e.g. ```AuxInvertedPendulumLDBulletEnv-v0```.
 
 To get a version of domain that would be visualized add ```Viz``` suffix: ```AuxInvertedPendulumBulletEnvViz-v0```
+
+### Using Envs with Point Clouds
+
+A few of the envs can output point clouds.
+For example: CartPole with 1024 points in a point cloud:
+
+```
+python -m gym_bullet_aux.aux_env_demo \
+  --env_name=AuxCartPolePT1024BulletEnv-v1 --viz --debug
+```
+
+BlockOnIncline with one of 6 Ycb objects and 1024 points:
+
+```
+python -m gym_bullet_aux.aux_env_demo \
+  --env_name=BlockOnInclineYcbPT1024-v5 --viz --debug
+```
+
+Replace 1024 with any of 64,128,512,2048 to get a smaller/larger
+number of points in the point clouds,
+e.g. ```BlockOnInclineGeomMdPT128-v5```
+
+Replace ```-v5``` with any verion from 0 to 5 to get a different object,
+e.g. ```BlockOnInclineYcbPT1024-v0```
+
+Replace Ycb with Geom to use simple shapes:
+e.g. ```BlockOnInclineGeomPT1024-v5```.
+
+Use suffix ```Sm``` for small and ```Md``` for medium sized object,
+e.g. ```BlockOnInclineGeomMdPT1024-v5```
+
 
 <br />
 <hr />

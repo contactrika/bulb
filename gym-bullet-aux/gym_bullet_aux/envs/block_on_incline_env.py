@@ -7,6 +7,7 @@ import fileinput
 import os
 from shutil import copyfile
 
+import imageio
 import numpy as np
 np.set_printoptions(precision=4, linewidth=150, threshold=np.inf, suppress=True)
 import gym
@@ -15,6 +16,8 @@ import pybullet
 import pybullet_data
 import pybullet_utils.bullet_client as bc
 
+from ..utils.process_camera import ProcessCamera, plot_ptcloud
+from .all_cam_vals import ALL_CAM_VALS
 from .rearrange_utils import YCB_OBJECT_INFOS
 
 
@@ -36,7 +39,8 @@ class BlockOnInclineEnv(gym.Env):
     GEOM_COLORS = [[1,1,0.5],[0.2,0.2,0.2],[1,0,0],[1,0,1],[0,0.5,1],[0,0,1]]
     TGT_POS_X = 0.5; MIN_POS_X = 0.0; MAX_POS_Y = 0.1
     MAX_POS_X = 1.0  # terminate episode after object reaches with x coord
-    MIN_POS_X = 0.0; CLIP_POS_X = 1.27
+    CLIP_POS_X = 1.27
+    PTCLOUD_BOX_SIZE = 2.0  # 2m cube cut off for point cloud observations
     MIN_VEL = 0.0; CLIP_VEL = 3.10
     MIN_MASS = 0.05; MAX_MASS = 0.50
     MIN_FRIC = 0.10; MAX_FRIC = 0.50
@@ -49,7 +53,8 @@ class BlockOnInclineEnv(gym.Env):
     FLAT_STATE_WFRIC_MAXS = np.array(
         [NVRNTS, NVRNTS, MAX_FRIC, MAX_THETA, CLIP_POS_X, CLIP_VEL])
 
-    def __init__(self, version, variant, scale=2.5, obs_resolution=64,
+    def __init__(self, version, variant, scale=2.5,
+                 obs_resolution=64, obs_ptcloud=False,
                  report_fric=False, randomize=True,
                  visualize=False, debug_level=0):
         self.version = version
@@ -58,6 +63,7 @@ class BlockOnInclineEnv(gym.Env):
         self.debug_level = debug_level
         self.use_tn = True  # encode block position as length travelled
         self.obs_resolution = obs_resolution  # e.g. 64 for 64x64 images
+        self.obs_ptcloud = obs_ptcloud  # whether obs should be point clouds
         self.randomize = randomize
         self.report_fric = report_fric
         self.max_episode_len = 50
@@ -99,6 +105,17 @@ class BlockOnInclineEnv(gym.Env):
         #self.cam_yaw = 25; self.cam_pitch = -35
         #self.cam_dist = 0.5  # uncomment for a simple flat view
         #self.cam_yaw = 0; self.cam_pitch = -5; self.cam_target = [0.5, 0.2, 0.3]
+        # Initialize data needed for point cloud observervations.
+        if 'BlockOnIncline' not in ALL_CAM_VALS.keys():
+            # Print camera info to store in _cam_vals
+            # Note: has to be done after env reset().
+            ProcessCamera.compute_cam_vals(  # for point clouds
+                cam_dist=self.cam_dist, cam_tgt=self.cam_target,
+                cam_yaws=ProcessCamera.CAM_YAWS,
+                cam_pitches=ProcessCamera.CAM_PITCHES)
+            input('continue')
+        self.cam_vals = ALL_CAM_VALS['BlockOnIncline']  # needed for pt_clouds
+        self._cam_object_ids = [self.block_id]
         if visualize:
             pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_GUI, 0)
             pybullet.configureDebugVisualizer(
@@ -118,13 +135,18 @@ class BlockOnInclineEnv(gym.Env):
                 text='_', textPosition=[0.7,0,0.57],
                 textSize=5, textColorRGB=[0,1,0])
         self.aux_nms = BlockOnInclineEnv.dim_names(self.use_tn, self.report_fric)
-        if self.obs_resolution is not None:
+        if self.obs_resolution is None:
+            self.observation_space = gym.spaces.Box(
+                0.0, 1.0, shape=[len(self.aux_nms)], dtype=np.float32)
+        elif self.obs_ptcloud:
+            state_sz = self.obs_resolution*3  # 3D points in point cloud
+            self.observation_space = gym.spaces.Box(
+                -1.0*BlockOnInclineEnv.PTCLOUD_BOX_SIZE*np.ones(state_sz),
+                BlockOnInclineEnv.PTCLOUD_BOX_SIZE*np.ones(state_sz))
+        else:  # RGB images
             self.observation_space = gym.spaces.Box(  # channels: 3 color
                 0.0, 1.0, shape=[3, self.obs_resolution, self.obs_resolution],
                 dtype=np.float32)
-        else:
-            self.observation_space = gym.spaces.Box(
-                0.0, 1.0, shape=[len(self.aux_nms)], dtype=np.float32)
         self.action_space = gym.spaces.Box(
             -2.0, 2.0, shape=[1], dtype=np.float32)
         if debug_level>0: print('Created BlockOnInclineEnv')
@@ -283,7 +305,7 @@ class BlockOnInclineEnv(gym.Env):
     def get_obs_and_aux(self, aux_nms_to_fill=None):
         flat_state = self.sim_to_flat_state()
         if self.obs_resolution is not None:
-            pixel_obs = self.render_obs(debug=False)
+            pixel_obs = self.render_obs()
             return pixel_obs, flat_state
         else:
             return flat_state, flat_state
@@ -321,11 +343,20 @@ class BlockOnInclineEnv(gym.Env):
         assert(flat_state.shape[0]==len(self.aux_nms))
         return flat_state
 
-    def render_obs(self, debug=False):
+    def render_obs(self, debug_out_dir=None):
+        debug = debug_out_dir is not None
+        if self.obs_ptcloud:
+            ptcloud = ProcessCamera.get_ptcloud_obs(
+                self.sim, self._cam_object_ids, self.obs_resolution,
+                width=100, cam_vals_list=self.cam_vals,
+                box_lim=BlockOnInclineEnv.PTCLOUD_BOX_SIZE,
+                view_elev=30, view_azim=-70,
+                debug_out_dir=debug_out_dir)
+            return ptcloud
         rgba_px = self.render_debug(width=self.obs_resolution)
-        #if debug:
-        #    import imageio
-        #    imageio.imwrite('/tmp/obs_st'+str(self.stepnum)+'.png', rgba_px)
+        if debug:
+            fname = 'obs_st'+str(self.stepnum)+'.png'
+            imageio.imwrite(os.path.join(debug_out_dir, fname), rgba_px)
         float_obs = rgba_px[:,:,0:3].astype(float)/255.
         float_obs = float_obs.transpose((2,0,1))
         return float_obs

@@ -9,6 +9,8 @@ import os
 import numpy as np
 np.set_printoptions(precision=4, linewidth=150, threshold=np.inf, suppress=True)
 
+import imageio
+
 import gym
 
 import pybullet
@@ -16,15 +18,22 @@ import pybullet_data
 from pybullet_utils import bullet_client
 
 from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
+from pybullet_envs.env_bases import MJCFBaseBulletEnv
+
+from ..utils.process_camera import ProcessCamera, plot_ptcloud
+from .all_cam_vals import ALL_CAM_VALS
 
 
 class AuxBulletEnv(gym.Env):
+    PTCLOUD_BOX_SIZE = 2.0  # 2m cube cut off for point cloud observations
 
     def __init__(self, base_env_name, env_v=0, obs_resolution=128,
-                 random_colors=False, obs_torch_float_format=True,
+                 obs_ptcloud=False, random_colors=False,
+                 obs_torch_float_format=True,
                  visualize=False, debug_level=0):
         self.base_env_name = base_env_name
         self.obs_resolution = obs_resolution
+        self.obs_ptcloud = obs_ptcloud
         self.random_colors = random_colors
         self.obs_torch_float_format = obs_torch_float_format
         self.visualize = visualize
@@ -36,11 +45,11 @@ class AuxBulletEnv(gym.Env):
         # If we created a bullet sim env from scratch, would init sim as:
         # conn_mode = pybullet.GUI if visualize else pybullet.DIRECT
         # self._p = bullet_client.BulletClient(connection_mode=conn_mode)
-        # But all bullet gym envs init bulllet client in constructor or reset.
+        # But all bullet gym envs init bullet client in constructor or reset.
         # Kuka creates bullet client in the constructor, so need to call
-        # its constructor excplicitly. All other envs derive from classes in
+        # its constructor explicitly. All other envs derive from classes in
         # pybullet_envs.env_bases, which init bullet client in reset().
-        # We set the coresponding render flag for them after their creation.
+        # We set the corresponding render flag for them after their creation.
         if 'Kuka' in base_env_name:
             max_episode_steps = 1000
             self._env = KukaGymEnv(renders=visualize, maxSteps=max_episode_steps)
@@ -64,6 +73,7 @@ class AuxBulletEnv(gym.Env):
         elif base_env_name.startswith('InvertedDoublePendulum'):
             self._env.unwrapped._cam_dist = 2.8
             self._env.unwrapped._cam_pitch = -1.0
+            self._part_nms = ['cart', 'pole', 'pole2']
         elif base_env_name.startswith(('Hopper', 'Walker2D')):
             self._env.unwrapped._cam_dist = 1.5
             self._env.unwrapped._cam_pitch = -40
@@ -77,11 +87,32 @@ class AuxBulletEnv(gym.Env):
             cartpole = self._env.unwrapped.cartpole
             self._sim.changeVisualShape(cartpole, 0, rgbaColor=(1,1,0,1))
             self._sim.changeVisualShape(cartpole, 1, rgbaColor=(0,0,1,1))
+        # Compute camera info. This has to be done after self._env.reset()
         self._view_mat, self._proj_mat, base_pos = self.compute_cam_vals()
+        # Specify camera objects for point cloud processing.
+        if self.obs_ptcloud:
+            assert(base_env_name=='CartPole')
+            if base_env_name not in ALL_CAM_VALS:
+                print('ERROR: Requesting point could env without pre-pecified'
+                      'camera info. Uncomment compute_cam_vals() call in reset()'
+                      'then copy the CAM_VALS list to all_cam_vals.py')
+            self._cam_vals = ALL_CAM_VALS[base_env_name]
+            self._cam_object_ids = [self._env.unwrapped.cartpole]
+            #for tmpi in range(self._sim.getNumBodies()):
+            #    robot_name, scene_name = self._sim.getBodyInfo(tmpi)
+            #    robot_name = robot_name.decode("utf8")
+            #    body_id = self._sim.getBodyUniqueId(tmpi)
+            #    print('_cam_object_ids:', body_id, robot_name, scene_name)
+            #    self._cam_object_ids.append(body_id)
         # Specify observation and action spaces.
         if obs_resolution is None:
             self.observation_space = self._env.observation_space  # low dim
-        else:
+        elif self.obs_ptcloud:
+            state_sz = self.obs_resolution*3  # 3D points in point cloud
+            self.observation_space = gym.spaces.Box(
+                -1.0*AuxBulletEnv.PTCLOUD_BOX_SIZE*np.ones(state_sz),
+                AuxBulletEnv.PTCLOUD_BOX_SIZE*np.ones(state_sz))
+        else:  # RGB images
             if obs_torch_float_format:
                 self.observation_space = gym.spaces.Box(
                     low=0.0, high=1.0,
@@ -119,12 +150,23 @@ class AuxBulletEnv(gym.Env):
     def reset(self):
         self.reward_accum = 0
         self.done = False  # TODO: use to avoid losing last frame in vec envs
-        obs = self._env.reset()
+        if 'Pendulum' in self.base_env_name:  # avoid restoring state
+            obs = MJCFBaseBulletEnv.reset(self._env.unwrapped)
+        else:
+            obs = self._env.reset()
         if self.random_colors: self.reset_colors()
-        if self.obs_resolution is not None: obs = self.render_obs(debug=False)
+        if self.obs_resolution is not None: obs = self.render_obs()
         # For mobile envs: could look at the robot from different angles.
         #if self._mobile:
         #    self._env.unwrapped._cam_yaw = (np.random.rand()-0.5)*360
+        #
+        # Print camera info to store in _cam_vals
+        # Note: has to be done after env reset().
+        #ProcessCamera.compute_cam_vals(  # for point clouds
+        #    cam_dist=self._env.unwrapped._cam_dist, cam_tgt=self.get_base_pos(),
+        #    cam_yaws=ProcessCamera.CAM_YAWS,
+        #    cam_pitches=ProcessCamera.CAM_PITCHES)
+        #input('continue')
         if self.visualize:
             self._sim.resetDebugVisualizerCamera(
                 self._env.unwrapped._cam_dist, self._env.unwrapped._cam_yaw,
@@ -170,9 +212,18 @@ class AuxBulletEnv(gym.Env):
     def render(self, mode="rgb_array"):
         pass
 
-    def render_obs(self, mode="rgb_array", debug=False):
+    def render_obs(self, mode="rgb_array", debug_out_dir=None):
         if mode != "rgb_array": return np.array([])
         if self.obs_resolution is None: return np.array([])  # no RGB
+        debug = debug_out_dir is not None
+        if self.obs_ptcloud:
+            ptcloud = ProcessCamera.get_ptcloud_obs(
+                self._sim, self._cam_object_ids, self.obs_resolution,
+                width=100, cam_vals_list=self._cam_vals,
+                box_lim=AuxBulletEnv.PTCLOUD_BOX_SIZE,
+                view_elev=30, view_azim=-70,
+                debug_out_dir=debug_out_dir)
+            return ptcloud.reshape(-1)
         height = width = self.obs_resolution
         if self._mobile:
             self._view_mat, self._proj_mat, _ = self.compute_cam_vals()
@@ -181,8 +232,7 @@ class AuxBulletEnv(gym.Env):
             viewMatrix=self._view_mat, projectionMatrix=self._proj_mat,
             renderer=pybullet.ER_BULLET_HARDWARE_OPENGL)
         if debug:
-            import imageio
-            imageio.imwrite('/tmp/tmp_obs.png', rgba_px)
+            imageio.imwrite(os.path.join(debug_out_dir, 'tmp_obs.png'), rgba_px)
         if self.obs_torch_float_format:
             obs = rgba_px[:,:,0:3].astype(float)/255.
             obs = obs.transpose((2,0,1))  # HxWxRGB float32
