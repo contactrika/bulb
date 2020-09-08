@@ -48,6 +48,9 @@ python -m gym_bullet_aux.aux_env_demo \
   --env_name=AuxCartPolePT1024BulletEnv-v1 --viz --debug
 ```
 
+![CartPole_sm](img/CartPole_sm.png)
+![CartPole_pt_sm](img/CartPole_pt_sm.png)
+
 BlockOnIncline with one of 6 Ycb objects and 1024 points.
 The goal is to keep the object in the center of the incline.
 RL has 1D action that just pushes the object up/down along
