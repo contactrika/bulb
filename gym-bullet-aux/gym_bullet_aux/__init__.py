@@ -40,7 +40,7 @@ for base_env_name in gym_envs:
 
 # Register rearrangement envs.
 num_versions = 6*2  # 6 versions and their black-background variants
-for robot in ['Reacher', 'Franka']:
+for robot in ['Ureacher', 'Reacher', 'Franka']:
     max_episode_len = 50  # don't use max_episode_steps to avoid TimeLimit wrap
     for variant in ['Ycb', 'OneYcb', 'Geom', 'OneGeom']:
         for rnd_init_pos in [False, True]:

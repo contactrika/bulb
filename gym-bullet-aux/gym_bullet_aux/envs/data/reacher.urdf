@@ -1,0 +1,153 @@
+<?xml version="1.0" ?>
+<robot name="reacher">
+  <link name="world"/>
+  <joint name="robot_to_world" type="fixed">
+    <parent link="world"/>
+    <child link="reacher_link0"/>
+    <origin rpy="0 0 0" xyz="0 0 0.01"/>
+    <dynamics damping="1.0"/>
+  </joint>
+  <link name="reacher_link0">
+    <visual>
+      <geometry>
+        <cylinder length="0.02" radius="0.025"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.02" radius="0.025"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="0.00018958" ixy="0.0" ixz="0.0" iyy="0.00018958" iyz="0.0" izz="0.00005208"/>
+    </inertial>
+  </link>
+  <link name="reacher_link1">
+    <visual>
+      <geometry>
+        <cylinder length="0.02" radius="0.025"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.02" radius="0.025"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="0.00018958" ixy="0.0" ixz="0.0" iyy="0.00018958" iyz="0.0" izz="0.00005208"/>
+    </inertial>
+  </link>
+  <joint name="reacher_joint1" type="revolute">
+    <origin rpy="0 0 0" xyz="0 0 0.021"/>
+    <parent link="reacher_link0"/>
+    <child link="reacher_link1"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="10" lower="-30.14159" upper="30.14159" velocity="10.0"/>
+    <dynamics damping="1.0"/>
+  </joint>
+  <link name="reacher_link2">
+    <visual>
+      <geometry>
+        <box size="0.14 0.025 0.025"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.14 0.025 0.025"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="0.00010417" ixy="0.0" ixz="0.0" iyy="0.00168542" iyz="0.0" izz="0.00168542"/>
+    </inertial>
+  </link>
+  <joint name="reacher_joint2" type="fixed">
+    <origin rpy="0 0 0" xyz="0.07 0 0"/>
+    <parent link="reacher_link1"/>
+    <child link="reacher_link2"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="1.0"/>
+  </joint>
+  <link name="reacher_link3">
+    <visual>
+      <geometry>
+        <cylinder length="0.02" radius="0.015"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder length="0.02" radius="0.015"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="0.00005833" ixy="0.0" ixz="0.0" iyy="0.00005833" iyz="0.0" izz="0.00000833"/>
+    </inertial>
+  </link>
+  <joint name="reacher_joint3" type="revolute">
+    <origin rpy="0 0 0" xyz="0.085 0 0"/>
+    <parent link="reacher_link2"/>
+    <child link="reacher_link3"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="10" lower="-3.14159" upper="3.14159" velocity="10.0"/>
+    <dynamics damping="1.0"/>
+  </joint>
+  <link name="reacher_link4">
+    <visual>
+      <geometry>
+        <box size="0.14 0.025 0.025"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.14 0.025 0.025"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="0.00010417" ixy="0.0" ixz="0.0" iyy="0.00168542" iyz="0.0" izz="0.00168542"/>
+    </inertial>
+  </link>
+  <joint name="reacher_joint4" type="fixed">
+    <origin rpy="0 0 0" xyz="0.075 0 0"/>
+    <parent link="reacher_link3"/>
+    <child link="reacher_link4"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="1.0"/>
+  </joint>
+  <link name="reacher_link5">
+    <visual>
+      <geometry>
+        <box size="0.01 0.025 0.025"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0 1 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.01 0.025 0.025"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="0.00010417" ixy="0.0" ixz="0.0" iyy="0.00006042" iyz="0.0" izz="0.00006042"/>
+    </inertial>
+  </link>
+  <joint name="reacher_joint5" type="fixed">
+    <origin rpy="0 0 0" xyz="0.07 0 0"/>
+    <parent link="reacher_link4"/>
+    <child link="reacher_link5"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="1.0"/>
+  </joint>
+</robot>
+

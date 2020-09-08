@@ -55,6 +55,9 @@ python -m gym_bullet_aux.aux_env_demo \
   --env_name=BlockOnInclineYcbPT1024-v5 --viz --debug
 ```
 
+Note: incline plane is not included in the point cloud for 
+faster processing.
+
 Replace 1024 with any of 64,128,512,2048 to get a smaller/larger
 number of points in the point clouds,
 e.g. ```BlockOnInclineGeomMdPT128-v5```
@@ -68,6 +71,28 @@ e.g. ```BlockOnInclineGeomPT1024-v5```.
 Use suffix ```Sm``` for small and ```Md``` for medium sized object,
 e.g. ```BlockOnInclineGeomMdPT1024-v5```
 
+
+For envs with a very simple reacher robot use:
+
+```
+python -m gym_bullet_aux.aux_env_demo \
+--env_name=UreacherRearrangeOneYcbPT2048-v1 --viz --debug
+```
+
+Remove ```One`` to load 4 objects; replace ```Ycb``` with ```Geom```
+to load simple shapes. Can choose from versions 0-5 to get different
+objects and color textures.
+
+```
+python -m gym_bullet_aux.aux_env_demo \
+--env_name=UreacherRearrangeGeomPT1024-v0 --viz --debug
+```
+
+Using ```--debug``` flag will cause the demo to output png
+files with visualized point clouds to ```/tmp/```.
+
+See example output images and point cloud visualizations in
+[img](img) folder.
 
 <br />
 <hr />

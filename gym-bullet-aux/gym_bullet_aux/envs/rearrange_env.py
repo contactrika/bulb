@@ -1,12 +1,14 @@
 """
 Base class for visually-realistic env for re-arrangement tasks.
 """
-
+import imageio
 import os
 import numpy as np
 import gym
 import pybullet
 
+from ..utils.process_camera import ProcessCamera, plot_ptcloud
+from .all_cam_vals import ALL_CAM_VALS
 from .rearrange_utils import *
 
 
@@ -51,6 +53,7 @@ class RearrangeEnv(gym.Env):
                    [[0,1,1],[0,1,0],[1,1,0],[0,0,1]]]*2
     OBJ_XYZ_MINS = np.array([-0.40, -0.40, 0.00])-0.05  # 5cm slack
     OBJ_XYZ_MAXS = np.array([ 0.40,  0.40, 0.15])+0.05  # 5cm slack
+    PTCLOUD_BOX_SIZE = 0.5  # 50cm cube cut off for point cloud observations
     # For param randomization.
     SIM_PARAM_INFO = {'RGB_R':0, 'RGB_G':1, 'RGB_B':2}  # background RGB
     SIM_PARAM_MINS = np.array([0.0, 0.0, 0.0])
@@ -75,12 +78,13 @@ class RearrangeEnv(gym.Env):
     # to not report dims or inertia diagonal correctly; so use hard-coded init.
     CYLINDER_DEFAULT_DIMS = [0.06, 0.06, 0.12/2]
 
-    def __init__(self, version, max_episode_len, obs_resolution,
+    def __init__(self, version, max_episode_len, obs_resolution, obs_ptcloud,
                  variant, rnd_init_pos, statics_in_lowdim, debug_level=0):
         if debug_level>0: print('RearrangeEnv.__init__()...')
         # Note: RearrangeEnv expects that we created self.robot already.
         assert(hasattr(self, 'robot'))
-        assert((obs_resolution in [64, 128, 256]) or obs_resolution is None)
+        assert((obs_resolution in [64, 128, 256]) or
+               obs_resolution is None or obs_ptcloud)
         self.version = version
         self.variant = variant
         self.remove_robot = False  # for debugging
@@ -90,6 +94,7 @@ class RearrangeEnv(gym.Env):
         self.max_episode_len = max_episode_len
         self.num_action_repeats = 4 # apply same torque action k num sim steps
         self.obs_resolution = obs_resolution
+        self.obs_ptcloud = obs_ptcloud
         self.debug_level = debug_level
         self.max_torque = self.robot.get_maxforce()
         self.ndof = self.max_torque.shape[0]
@@ -152,19 +157,45 @@ class RearrangeEnv(gym.Env):
         self.object_ids, self.object_props = RearrangeEnv.load_objects(
             self.robot.sim, obj_files, self.init_object_poses,
             self.init_object_quats, obj_masses, obj_scales, geom_colors)
+        # Initialize data needed for point cloud observations.
+        if 'Rearrange' not in ALL_CAM_VALS.keys():
+            # Print camera info to store in _cam_vals
+            # Note: has to be done after env reset().
+            ProcessCamera.compute_cam_vals(  # for point clouds
+                cam_dist=self.robot.cam_dist, cam_tgt=self.robot.cam_target,
+                cam_yaws=ProcessCamera.CAM_YAWS,
+                cam_pitches=ProcessCamera.CAM_PITCHES)
+            input('continue')
+        for tmpi in range(self.robot.sim.getNumBodies()):
+            robot_name, scene_name = self.robot.sim.getBodyInfo(tmpi)
+            robot_name = robot_name.decode("utf8")
+            body_id = self.robot.sim.getBodyUniqueId(tmpi)
+            print('_cam_object_ids:', body_id, robot_name, scene_name)
+            #self._cam_object_ids.append(body_id)
+        self.cam_vals = ALL_CAM_VALS['Rearrange']  # needed for pt_clouds
+        if not hasattr(self.robot, 'robot_id'):
+            self.robot.robot_id = self.robot.info.robot_id
+        self._cam_object_ids = [self.robot.robot_id]
+        self._cam_object_ids.extend(self.object_ids)
+        print(self._cam_object_ids)
+        input('continue')
         # Define obs and action space shapes.
         self.aux_nms = []  # names for low-dim state (flat_state)
         _, aux = self.get_obs_and_aux(aux_nms_to_fill=self.aux_nms)
-        if self.obs_resolution is not None:
+        if self.obs_resolution is None:
+            self.observation_space = gym.spaces.Box(
+                0.0, 1.0, shape=[len(self.aux_nms)], dtype=np.float32)
+        elif self.obs_ptcloud:
+            state_sz = self.obs_resolution*3  # 3D points in point cloud
+            self.observation_space = gym.spaces.Box(
+                -1.0*RearrangeEnv.PTCLOUD_BOX_SIZE*np.ones(state_sz),
+                RearrangeEnv.PTCLOUD_BOX_SIZE*np.ones(state_sz))
+        else:  # RGB images
             self.observation_space = gym.spaces.Box(  # channels: 3 color
                 0.0, 1.0, shape=[3, self.obs_resolution, self.obs_resolution],
                 dtype=np.float32)
-        else:
-            self.observation_space = gym.spaces.Box(
-                0.0, 1.0, shape=[len(self.aux_nms)], dtype=np.float32)
         self.action_space = gym.spaces.Box(
-            -self.max_torque[:self.ndof], self.max_torque[:self.ndof],
-            shape=[self.ndof], dtype=np.float32)
+            0.0, 1.0, shape=[self.ndof], dtype=np.float32)
         super(RearrangeEnv, self).__init__()
         # TODO: make same interface to enable RL on low-dim state as Aux envs.
         # Note: in this env aux state in this envs is normalized to [-1,1]
@@ -284,7 +315,7 @@ class RearrangeEnv(gym.Env):
         # Assume: robot is torque controlled and action is scaled to [0,1]
         torque = np.hstack(
             [action, np.zeros(self.max_torque.shape[0]-self.ndof)])
-        torque = np.clip((torque-0.5)*self.max_torque,
+        torque = np.clip((torque-0.5)*2*self.max_torque,
                          -self.max_torque, self.max_torque)
         if self.debug_level>0 and self.stepnum%50==0:
             print('step', self.stepnum, 'action', action, 'torque', torque)
@@ -326,12 +357,20 @@ class RearrangeEnv(gym.Env):
         rwd = (1.0-mean_dist)/float(self.max_episode_len)
         return rwd
 
-    def render_obs(self, debug=False):
+    def render_obs(self, debug_out_dir=None):
+        debug = debug_out_dir is not None
         if self.obs_resolution is None: return None
+        if self.obs_ptcloud:
+            ptcloud = ProcessCamera.get_ptcloud_obs(
+                self.robot.sim, self._cam_object_ids, self.obs_resolution,
+                width=100, cam_vals_list=self.cam_vals,
+                box_lim=RearrangeEnv.PTCLOUD_BOX_SIZE,
+                view_elev=30, view_azim=-70,
+                debug_out_dir=debug_out_dir)
+            return ptcloud
         rgba_px = self.robot.render_debug(width=self.obs_resolution)
-        #if debug:
-        #    import imageio
-        #    imageio.imwrite('/tmp/obs_st'+str(self.stepnum)+'.png', rgba_px)
+        if debug:
+            imageio.imwrite('/tmp/obs_st'+str(self.stepnum)+'.png', rgba_px)
         float_obs = rgba_px[:,:,0:3].astype(float)/255.
         float_obs = float_obs.transpose((2,0,1))
         return float_obs

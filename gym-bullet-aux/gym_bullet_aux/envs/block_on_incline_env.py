@@ -16,7 +16,7 @@ import pybullet
 import pybullet_data
 import pybullet_utils.bullet_client as bc
 
-from ..utils.process_camera import ProcessCamera, plot_ptcloud
+from ..utils.process_camera import ProcessCamera
 from .all_cam_vals import ALL_CAM_VALS
 from .rearrange_utils import YCB_OBJECT_INFOS
 
@@ -40,7 +40,7 @@ class BlockOnInclineEnv(gym.Env):
     TGT_POS_X = 0.5; MIN_POS_X = 0.0; MAX_POS_Y = 0.1
     MAX_POS_X = 1.0  # terminate episode after object reaches with x coord
     CLIP_POS_X = 1.27
-    PTCLOUD_BOX_SIZE = 2.0  # 2m cube cut off for point cloud observations
+    PTCLOUD_BOX_SIZE = 1.3  # 1.3m cube cut off for point cloud observations
     MIN_VEL = 0.0; CLIP_VEL = 3.10
     MIN_MASS = 0.05; MAX_MASS = 0.50
     MIN_FRIC = 0.10; MAX_FRIC = 0.50
@@ -105,7 +105,7 @@ class BlockOnInclineEnv(gym.Env):
         #self.cam_yaw = 25; self.cam_pitch = -35
         #self.cam_dist = 0.5  # uncomment for a simple flat view
         #self.cam_yaw = 0; self.cam_pitch = -5; self.cam_target = [0.5, 0.2, 0.3]
-        # Initialize data needed for point cloud observervations.
+        # Initialize data needed for point cloud observations.
         if 'BlockOnIncline' not in ALL_CAM_VALS.keys():
             # Print camera info to store in _cam_vals
             # Note: has to be done after env reset().

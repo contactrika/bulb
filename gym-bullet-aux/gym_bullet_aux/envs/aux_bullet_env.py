@@ -20,7 +20,7 @@ from pybullet_utils import bullet_client
 from pybullet_envs.bullet.kukaGymEnv import KukaGymEnv
 from pybullet_envs.env_bases import MJCFBaseBulletEnv
 
-from ..utils.process_camera import ProcessCamera, plot_ptcloud
+from ..utils.process_camera import ProcessCamera
 from .all_cam_vals import ALL_CAM_VALS
 
 
