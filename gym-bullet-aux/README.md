@@ -48,12 +48,19 @@ python -m gym_bullet_aux.aux_env_demo \
   --env_name=AuxCartPolePT1024BulletEnv-v1 --viz --debug
 ```
 
-BlockOnIncline with one of 6 Ycb objects and 1024 points:
+BlockOnIncline with one of 6 Ycb objects and 1024 points.
+The goal is to keep the object in the center of the incline.
+RL has 1D action that just pushes the object up/down along
+the incline with the given force. The force and direction
+are visualized with a text annotation on the (debug) image.
 
 ```
 python -m gym_bullet_aux.aux_env_demo \
   --env_name=BlockOnInclineYcbPT1024-v5 --viz --debug
 ```
+
+![incline0_sm](img/incline0_sm.png)
+![incline0_pt_sm](img/incline0_pt_sm.png)
 
 Note: incline plane is not included in the point cloud for 
 faster processing.
@@ -78,6 +85,17 @@ For envs with a very simple reacher robot use:
 python -m gym_bullet_aux.aux_env_demo \
 --env_name=UreacherRearrangeOneYcbPT2048-v1 --viz --debug
 ```
+
+![reacher0_sm](img/reacher0_sm.png)
+![reacher0_pt_sm](img/reacher0_pt_sm.png)
+
+![reacher1_sm](img/reacher1_sm.png)
+![reacher1_pt_sm](img/reacher1_pt_sm.png)
+
+Note: point clouds visualizations on the right are given from a 
+different step, just to give a general idea; 
+they are not supposed to correspond to the env visualization on the
+left (that is recorded at the start of the episode).
 
 Remove ```One``` to load 4 objects; replace ```Ycb``` with ```Geom```
 to load simple shapes. Can choose from versions 0-5 to get different

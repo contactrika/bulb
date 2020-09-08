@@ -70,7 +70,9 @@ class RearrangeEnv(gym.Env):
     GEOM_FROM_SHAPE = [pybullet.GEOM_SPHERE, pybullet.GEOM_CYLINDER,
                        pybullet.GEOM_BOX, pybullet.GEOM_MESH]
     NAME_FROM_SHAPE = ['geomsphere', 'geomcylinder', 'geombox', 'mesh']
-    # Target areas (left blue for packaged, right white for fruit)
+    # Target areas:
+    #   left for packaged food (boxes, cylinders)
+    #   right for fruit (spheres)
     # Other colors for later: orange [1, 0.5, 0, 0.5]
     TARGETS_POS = np.array([[0.2, -0.2, 0.01], [0.2, 0.2, 0.01]])
     TARGETS_RGBA = np.array([[0.6, 0.6, 0.9, 0.7], [0.9, 0.9, 0.9, 0.7]])
