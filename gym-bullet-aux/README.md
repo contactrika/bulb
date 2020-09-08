@@ -79,7 +79,7 @@ python -m gym_bullet_aux.aux_env_demo \
 --env_name=UreacherRearrangeOneYcbPT2048-v1 --viz --debug
 ```
 
-Remove ```One`` to load 4 objects; replace ```Ycb``` with ```Geom```
+Remove ```One``` to load 4 objects; replace ```Ycb``` with ```Geom```
 to load simple shapes. Can choose from versions 0-5 to get different
 objects and color textures.
 
