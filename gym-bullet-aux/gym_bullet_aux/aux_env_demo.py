@@ -25,16 +25,6 @@ def play(env, num_episodes, debug, viz):
     for epsd in range(num_episodes):
         print('------------ Play episode ', epsd, '------------------')
         obs = env.reset()
-        if debug: env.render_obs(debug=debug)
-        """
-        if epsd==0:
-            test_override(env)
-        else:
-            flat_state = np.random.rand(*(info['aux'].shape))
-            env.override_state(flat_state)
-        """
-        # Need to step to get low-dim state from info.
-        obs, _, _, info = env.step(noop_action)
         step = 0
         #input('Reset done; press enter to start episode')
         while True:
@@ -46,15 +36,13 @@ def play(env, num_episodes, debug, viz):
                 rng = env.action_space.high - env.action_space.low
                 act = act*rng + env.action_space.low
             next_obs, rwd, done, info = env.step(act)
-            #if debug: print('aux', info['aux']); input('continue')
             if viz: time.sleep(0.05)
             if done:
                 #msg = 'Play epsd #{:d}'
                 #logging.info(msg.format(epsd))
-                if debug: env.render_obs(debug=True)
                 break
-            obs = next_obs
             step += 1
+            if debug and step%5==0: env.render_obs(debug_out_dir='/tmp/')
         #input('Episode ended; press enter to go on')
 
 

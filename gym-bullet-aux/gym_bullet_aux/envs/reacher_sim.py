@@ -36,10 +36,14 @@ class ReacherBulletSimulation:
         # Load robot.
         robot_description_folder = os.path.split(__file__)[0]
         data_path = os.path.join(robot_description_folder, 'data')
-        robot_xml_path = os.path.join(data_path, robot_desc_file)
-        world_id, robot_id = self.sim.loadMJCF(robot_xml_path)
+        robot_file_path = os.path.join(data_path, robot_desc_file)
+        print('robot_file_path', robot_file_path)
+        if robot_file_path.endswith('.urdf'):
+            robot_id = self.sim.loadURDF(robot_file_path, [0,0,0])
+        else:
+            world_id, robot_id = self.sim.loadMJCF(robot_file_path)
+            self.sim.changeVisualShape(world_id, -1, rgbaColor=(1,1,1,1))
         self.robot_id = robot_id
-        self.sim.changeVisualShape(world_id, -1, rgbaColor=(1,1,1,1))
         for link_id in [1,3,4,5]:
             rgb = [1,1,1] if link_id in [1,4,5] else [1,0.6,0.15]
             self.sim.changeVisualShape(self.robot_id, link_id,

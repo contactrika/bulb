@@ -31,12 +31,89 @@ The following behcmark environments are available:
 The above have continuous action space, ```AuxCartPoleBulletEnv-v1``` is available with discrete action space.
 
 ```
-python -m gym_bullet_aux.aux_env_demo --env_name=AuxAntBulletEnv-v1 --debug --viz
+python -m gym_bullet_aux.aux_env_demo --env_name=AuxAntBulletEnv-v0 --debug --viz
 ```
 
 To get low-dimensional simulator state in observations (instead of RGB observations) add ```LD``` suffix, e.g. ```AuxInvertedPendulumLDBulletEnv-v0```.
 
 To get a version of domain that would be visualized add ```Viz``` suffix: ```AuxInvertedPendulumBulletEnvViz-v0```
+
+### Using Envs with Point Clouds
+
+A few of the envs can output point clouds.
+For example: CartPole with 1024 points in a point cloud:
+
+```
+python -m gym_bullet_aux.aux_env_demo \
+  --env_name=AuxCartPolePT1024BulletEnv-v1 --viz --debug
+```
+
+![CartPole_sm](img/CartPole_sm.png)
+![CartPole_pt_sm](img/CartPole_pt_sm.png)
+
+BlockOnIncline with one of 6 Ycb objects and 1024 points.
+The goal is to keep the object in the center of the incline.
+RL has 1D action that just pushes the object up/down along
+the incline with the given force. The force and direction
+are visualized with a text annotation on the (debug) image.
+
+```
+python -m gym_bullet_aux.aux_env_demo \
+  --env_name=BlockOnInclineYcbPT1024-v5 --viz --debug
+```
+
+![incline0_sm](img/incline0_sm.png)
+![incline0_pt_sm](img/incline0_pt_sm.png)
+
+Note: incline plane is not included in the point cloud for 
+faster processing.
+
+Replace 1024 with any of 64,128,512,2048 to get a smaller/larger
+number of points in the point clouds,
+e.g. ```BlockOnInclineGeomMdPT128-v5```
+
+Replace ```-v5``` with any verion from 0 to 5 to get a different object,
+e.g. ```BlockOnInclineYcbPT1024-v0```
+
+Replace Ycb with Geom to use simple shapes:
+e.g. ```BlockOnInclineGeomPT1024-v5```.
+
+Use suffix ```Sm``` for small and ```Md``` for medium sized object,
+e.g. ```BlockOnInclineGeomMdPT1024-v5```
+
+
+For envs with a very simple reacher robot use:
+
+```
+python -m gym_bullet_aux.aux_env_demo \
+--env_name=UreacherRearrangeOneYcbPT2048-v1 --viz --debug
+```
+
+![reacher0_sm](img/reacher0_sm.png)
+![reacher0_pt_sm](img/reacher0_pt_sm.png)
+
+![reacher1_sm](img/reacher1_sm.png)
+![reacher1_pt_sm](img/reacher1_pt_sm.png)
+
+Note: point clouds visualizations on the right are given from a 
+different step, just to give a general idea; 
+they are not supposed to correspond to the env visualization on the
+left (that is recorded at the start of the episode).
+
+Remove ```One``` to load 4 objects; replace ```Ycb``` with ```Geom```
+to load simple shapes. Can choose from versions 0-5 to get different
+objects and color textures.
+
+```
+python -m gym_bullet_aux.aux_env_demo \
+--env_name=UreacherRearrangeGeomPT1024-v0 --viz --debug
+```
+
+Using ```--debug``` flag will cause the demo to output png
+files with visualized point clouds to ```/tmp/```.
+
+See example output images and point cloud visualizations in
+[img](img) folder.
 
 <br />
 <hr />
