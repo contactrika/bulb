@@ -158,7 +158,8 @@ class AuxBulletEnv(gym.Env):
             #    print('        state', state)
             #    print('low_dim_state', low_dim_state)
             #    assert(False)
-        if done: info['episode'] = {'r':self.reward_accum}
+        if done:
+            info['episode'] = {'r':self.reward_accum, 'l':0} # TODO how to get episode length?
         if self.visualize and self._mobile and \
                 hasattr(self._env.unwrapped, 'camera_adjust'):
             self._env.unwrapped.body_xyz = self.get_base_pos()
