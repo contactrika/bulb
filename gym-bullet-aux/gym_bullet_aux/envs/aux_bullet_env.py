@@ -144,12 +144,16 @@ class AuxBulletEnv(gym.Env):
             print(self.observation_space, self.action_space)
             print('max_episode_steps', self._env._max_episode_steps)
 
+    def seed(self, seed):
+        np.random.seed(seed)
+
     def close(self):
         self._env.unwrapped.close()
 
     def reset(self):
-        self.reward_accum = 0
-        self.done = False  # TODO: use to avoid losing last frame in vec envs
+        self.stepnum = 0
+        self.done = False  # used to avoid losing last frame in vec envs
+        self.episode_rwd = 0
         if 'Pendulum' in self.base_env_name:  # avoid restoring state
             obs = MJCFBaseBulletEnv.reset(self._env.unwrapped)
         else:
@@ -177,8 +181,8 @@ class AuxBulletEnv(gym.Env):
         if np.isnan(action).all() or self.done:  # just return current obs, aux
             state = self.calc_low_dim_state()
             obs = state if self.obs_resolution is None else self.render_obs()
-            info = {'aux': state, 'episode': {'r': self.reward_accum}}
-            info['aux_nms'] = self.low_dim_state_info()[0]
+            info = {'aux': state, 'aux_nms': self.low_dim_state_info()[0],
+                    'episode': {'r': self.episode_rwd, 'l': self.stepnum}}
             return obs, 0.0, self.done, info
         state, raw_rwd, done, info = self._env.step(action)  # apply action
         obs = state if self.obs_resolution is None else self.render_obs()
@@ -186,7 +190,10 @@ class AuxBulletEnv(gym.Env):
         info['aux'] = state
         low_dim_nms, low_dim_low, low_dim_high = self.low_dim_state_info()
         if self.random_colors and self.stalled(state, low_dim_nms): done = True
-        self.reward_accum += rwd
+        # Update internal counters.
+        self.stepnum += 1
+        # Report reward starts and other info.
+        self.episode_rwd += rwd
         if self.debug_level>0:  # print low-dim state
             print('act', action)
             for i in range(len(low_dim_nms)):
@@ -200,7 +207,7 @@ class AuxBulletEnv(gym.Env):
             #    print('        state', state)
             #    print('low_dim_state', low_dim_state)
             #    assert(False)
-        if done: info['episode'] = {'r':self.reward_accum}
+        if done: info['episode'] = {'r': self.episode_rwd, 'l': self.stepnum}
         if self.visualize and self._mobile and \
                 hasattr(self._env.unwrapped, 'camera_adjust'):
             self._env.unwrapped.body_xyz = self.get_base_pos()

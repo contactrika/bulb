@@ -207,8 +207,8 @@ class BlockOnInclineEnv(gym.Env):
 
     def reset(self):
         self.stepnum = 0
-        self.tot_rwd = 0.0
-        self.done = False
+        self.done = False  # used to avoid losing last frame in vec envs
+        self.episode_rwd = 0.0
         if self.randomize:
             mins = np.array([BlockOnInclineEnv.MIN_MASS,
                              BlockOnInclineEnv.MIN_FRIC,
@@ -262,19 +262,24 @@ class BlockOnInclineEnv(gym.Env):
     def step(self, action):
         if np.isnan(action).all() or self.done:  # just return current obs, aux
             obs, aux = self.get_obs_and_aux()
-            return obs, 0.0, self.done, {'aux': aux, 'aux_nms': self.aux_nms}
+            info = {'aux': aux, 'aux_nms': self.aux_nms,
+                    'episode': {'r': self.episode_rwd, 'l': self.stepnum}}
+            return obs, 0.0, self.done, info
         # External force to be applied at each sub-step.
-        act = np.clip(action[0], self.action_space.low[0], self.action_space.high[0])
+        act = np.clip(action[0],
+                      self.action_space.low[0], self.action_space.high[0])
         for i in range(self.nskip):
             self.sim.applyExternalForce(
                 self.block_id, -1, [0,0,act], [0,0,0], pybullet.LINK_FRAME)
             self.sim.stepSimulation()
         next_obs, next_aux = self.get_obs_and_aux()
         info = {'aux': next_aux}
+        # Update internal counters.
         self.stepnum += 1
+        # Report reward starts and other info.
         block_pos, _ = self.sim.getBasePositionAndOrientation(self.block_id)
-        reward = self.compute_reward(block_pos)
-        self.tot_rwd += reward
+        rwd = self.compute_reward(block_pos)
+        self.episode_rwd += rwd
         done = (self.stepnum >= self.max_episode_len or
                 block_pos[0]>=BlockOnInclineEnv.MAX_POS_X or
                 block_pos[0]<=BlockOnInclineEnv.MIN_POS_X or
@@ -284,7 +289,7 @@ class BlockOnInclineEnv(gym.Env):
                 print('done at step', self.stepnum, 'block_pos', block_pos)
                 self.sim_to_flat_state(debug=True)
                 #input('Press Enter to continue')
-            info['episode'] = {'r': float(self.tot_rwd)}
+            info['episode'] = {'r': float(self.episode_rwd), 'l': self.stepnum}
             self.done = True; done = False  # will repeat last frame
         if self.visualize:
             dbg_txt = '{:s} {:0.2f}'.format('<' if act<0 else '>', act)
@@ -292,11 +297,11 @@ class BlockOnInclineEnv(gym.Env):
                 text=dbg_txt, textPosition=[0.7,0,0.62], textSize=5,
                 textColorRGB=[1,0,0], replaceItemUniqueId=self.dbg_txt_id)
             self.dbg_txt1_id = self.sim.addUserDebugText(
-                text='{:0.2f} tot {:0.2f}'.format(reward, self.tot_rwd),
+                text='{:0.2f} tot {:0.2f}'.format(rwd, self.episode_rwd),
                 textPosition=[0.7,0,0.57],
                 textSize=5, textColorRGB=[0,1,0],
                 replaceItemUniqueId=self.dbg_txt1_id)
-        return next_obs, reward, done, info
+        return next_obs, rwd, done, info
 
     def compute_reward(self, block_pos):
         dist = np.abs(block_pos[0]-BlockOnInclineEnv.TGT_POS_X)

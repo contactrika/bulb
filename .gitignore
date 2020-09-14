@@ -1,10 +1,6 @@
 AUX_ENV
 .idea
-*/*.egg-info/
-*/*/*.egg-info/
-*/*/*/*.egg-info/
-*/__pycache__/
-*/*/__pycache__/
-*/*/*/__pycache__/
-*/*/*/*/__pycache__/
-*/*/*/*/*/__pycache__/
+**/*.egg-info/
+**/__pycache__/
+**/.DS_store
+**/*.pyc

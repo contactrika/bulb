@@ -287,8 +287,8 @@ class RearrangeEnv(gym.Env):
 
     def reset(self):
         self.stepnum = 0
-        self.done = False
-        self.tot_rwd = 0.0
+        self.done = False  # used to avoid losing last frame in vec envs
+        self.episode_rwd = 0.0
         if self.remove_robot:
             self.robot.sim.resetBasePositionAndOrientation(
                 self.robot.robot_id, [1,0,0], [0,0,0,1])
@@ -313,7 +313,9 @@ class RearrangeEnv(gym.Env):
     def step(self, action):
         if np.isnan(action).all() or self.done:  # just return current obs, aux
             obs, aux = self.get_obs_and_aux()
-            return obs, 0.0, self.done, {'aux': aux, 'aux_nms': self.aux_nms}
+            info = {'aux': aux, 'aux_nms': self.aux_nms,
+                    'episode': {'r': self.episode_rwd, 'l': self.stepnum}}
+            return obs, 0.0, self.done, info
         # Assume: robot is torque controlled and action is scaled to [0,1]
         torque = np.hstack(
             [action, np.zeros(self.max_torque.shape[0]-self.ndof)])
@@ -330,17 +332,17 @@ class RearrangeEnv(gym.Env):
         # Update internal counters.
         self.stepnum += 1
         # Report reward starts and other info.
-        reward = self.compute_reward()
-        self.tot_rwd += reward
+        rwd = self.compute_reward()
+        self.episode_rwd += rwd
         done = (self.stepnum==self.max_episode_len) or not ee_ok
         info = {'aux': next_aux}
         if done:
             # Unused steps get a reward same as the last ok step
-            self.tot_rwd += reward*(self.max_episode_len-self.stepnum)
-            info['episode'] = {'r': float(self.tot_rwd)}
-            if self.debug_level>0: print('tot_rwd {:.4f}'.format(self.tot_rwd))
+            self.episode_rwd += rwd * (self.max_episode_len - self.stepnum)
+            info['episode'] = {'r': float(self.episode_rwd), 'l': self.stepnum}
+            if self.debug_level>0: print('tot_rwd {:.4f}'.format(self.episode_rwd))
             self.done = True; done = False  # will repeat last frame
-        return next_obs, reward, done, info
+        return next_obs, rwd, done, info
 
     def render(self, mode="rgb_array", close=False):
         pass  # implemented in pybullet
