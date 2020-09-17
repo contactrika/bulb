@@ -154,12 +154,16 @@ class AuxBulletEnv(gym.Env):
         self.stepnum = 0
         self.done = False  # used to avoid losing last frame in vec envs
         self.episode_rwd = 0
-        if 'Pendulum' in self.base_env_name:  # avoid restoring state
-            obs = MJCFBaseBulletEnv.reset(self._env.unwrapped)
-        else:
-            obs = self._env.reset()
         if self.random_colors: self.reset_colors()
-        if self.obs_resolution is not None: obs = self.render_obs()
+        if self.obs_resolution is None:  # low dim state
+            if 'Pendulum' in self.base_env_name:  # avoid restoring state
+                obs = MJCFBaseBulletEnv.reset(self._env.unwrapped)
+            else:
+                obs = self._env.reset()
+            obs = np.clip(obs, self.observation_space.low,
+                          self.observation_space.high)
+        else:  # pixel or ptcloud state
+            obs = self.render_obs()
         # For mobile envs: could look at the robot from different angles.
         #if self._mobile:
         #    self._env.unwrapped._cam_yaw = (np.random.rand()-0.5)*360
@@ -181,10 +185,14 @@ class AuxBulletEnv(gym.Env):
         if np.isnan(action).all() or self.done:  # just return current obs, aux
             state = self.calc_low_dim_state()
             obs = state if self.obs_resolution is None else self.render_obs()
+            obs = np.clip(obs, self.observation_space.low,
+                          self.observation_space.high)
             info = {'aux': state, 'aux_nms': self.low_dim_state_info()[0],
                     'episode': {'r': self.episode_rwd, 'l': self.stepnum}}
             return obs, 0.0, self.done, info
         state, raw_rwd, done, info = self._env.step(action)  # apply action
+        state = np.clip(state, self.observation_space.low,
+                        self.observation_space.high)
         obs = state if self.obs_resolution is None else self.render_obs()
         rwd = self.normalize_reward(raw_rwd)
         info['aux'] = state
