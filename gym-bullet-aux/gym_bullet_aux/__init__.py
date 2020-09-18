@@ -36,7 +36,7 @@ for base_env_name in gym_envs:
                                 'visualize':(debug_level>=2), 'debug_level':debug_level}
                         register(id=env_id, entry_point='gym_bullet_aux.envs:AuxBulletEnv',
                                  kwargs=kwargs)
-                        print(env_id)
+                        #print(env_id)
 
 # Register rearrangement envs.
 num_versions = 6*2  # 6 versions and their black-background variants

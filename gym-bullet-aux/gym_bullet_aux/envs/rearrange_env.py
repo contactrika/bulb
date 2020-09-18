@@ -174,13 +174,12 @@ class RearrangeEnv(gym.Env):
             body_id = self.robot.sim.getBodyUniqueId(tmpi)
             print('_cam_object_ids:', body_id, robot_name, scene_name)
             #self._cam_object_ids.append(body_id)
-        self.cam_vals = ALL_CAM_VALS['Rearrange']  # needed for pt_clouds
-        if not hasattr(self.robot, 'robot_id'):
-            self.robot.robot_id = self.robot.info.robot_id
-        self._cam_object_ids = [self.robot.robot_id]
-        self._cam_object_ids.extend(self.object_ids)
-        print(self._cam_object_ids)
-        input('continue')
+        if self.obs_ptcloud:
+            self.cam_vals = ALL_CAM_VALS['Rearrange']  # needed for pt_clouds
+            if not hasattr(self.robot, 'robot_id'):
+                self.robot.robot_id = self.robot.info.robot_id
+            self._cam_object_ids = [self.robot.robot_id]
+            self._cam_object_ids.extend(self.object_ids)
         # Define obs and action space shapes.
         self.aux_nms = []  # names for low-dim state (flat_state)
         _, aux = self.get_obs_and_aux(aux_nms_to_fill=self.aux_nms)

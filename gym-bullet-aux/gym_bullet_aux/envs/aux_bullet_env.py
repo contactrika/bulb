@@ -191,9 +191,9 @@ class AuxBulletEnv(gym.Env):
                     'episode': {'r': self.episode_rwd, 'l': self.stepnum}}
             return obs, 0.0, self.done, info
         state, raw_rwd, done, info = self._env.step(action)  # apply action
-        state = np.clip(state, self.observation_space.low,
-                        self.observation_space.high)
         obs = state if self.obs_resolution is None else self.render_obs()
+        obs = np.clip(
+            obs, self.observation_space.low, self.observation_space.high)
         rwd = self.normalize_reward(raw_rwd)
         info['aux'] = state
         low_dim_nms, low_dim_low, low_dim_high = self.low_dim_state_info()
@@ -205,7 +205,8 @@ class AuxBulletEnv(gym.Env):
         if self.debug_level>0:  # print low-dim state
             print('act', action)
             for i in range(len(low_dim_nms)):
-                print('{:s} {:0.4f} '.format(low_dim_nms[i], state[i]), end='')
+                print('step {:d}: {:s} {:0.4f} '.format(
+                    self.stepnum, low_dim_nms[i], state[i]), end='')
             print('')
         #if self.debug_level>0:
             # sanity check: aux should be same as low-dim state reported by env
