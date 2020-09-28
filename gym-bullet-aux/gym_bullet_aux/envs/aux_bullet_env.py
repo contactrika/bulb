@@ -190,14 +190,12 @@ class AuxBulletEnv(gym.Env):
             info = {'aux': state, 'aux_nms': self.low_dim_state_info()[0],
                     'episode': {'r': self.episode_rwd, 'l': self.stepnum}}
             return obs, 0.0, self.done, info
-        state, raw_rwd, done, info = self._env.step(action)  # apply action
+        state, rwd, done, info = self._env.step(action)  # apply action
         obs = state if self.obs_resolution is None else self.render_obs()
         obs = np.clip(
             obs, self.observation_space.low, self.observation_space.high)
-        rwd = self.normalize_reward(raw_rwd)
         info['aux'] = state
         low_dim_nms, low_dim_low, low_dim_high = self.low_dim_state_info()
-        if self.random_colors and self.stalled(state, low_dim_nms): done = True
         # Update internal counters.
         self.stepnum += 1
         # Report reward starts and other info.
@@ -228,19 +226,21 @@ class AuxBulletEnv(gym.Env):
     def render(self, mode="rgb_array"):
         pass
 
-    def render_obs(self, mode="rgb_array", debug_out_dir=None):
+    def render_obs(self, mode="rgb_array", resolution=None, debug_out_dir=None):
         if mode != "rgb_array": return np.array([])
-        if self.obs_resolution is None: return np.array([])  # no RGB
+        if resolution is None and self.obs_resolution is not None:
+            resolution = self.obs_resolution
+        if resolution is None: return np.array([])  # no RGB
         debug = debug_out_dir is not None
         if self.obs_ptcloud:
             ptcloud = ProcessCamera.get_ptcloud_obs(
-                self._sim, self._cam_object_ids, self.obs_resolution,
+                self._sim, self._cam_object_ids, resolution,
                 width=100, cam_vals_list=self._cam_vals,
                 box_lim=AuxBulletEnv.PTCLOUD_BOX_SIZE,
                 view_elev=30, view_azim=-70,
                 debug_out_dir=debug_out_dir)
             return ptcloud.reshape(-1)
-        height = width = self.obs_resolution
+        height = width = resolution
         if self._mobile:
             self._view_mat, self._proj_mat, _ = self.compute_cam_vals()
         (_, _, rgba_px, _, _) = self._sim.getCameraImage(
@@ -257,14 +257,17 @@ class AuxBulletEnv(gym.Env):
         return obs
 
     def normalize_reward(self, rwd):
+        # This could be a useful function for algorithms that expect episode
+        # rewards to be closer to a small range, like [0,1] or [-1,1].
+        #
         # Rewards in [0,1] for CartPole, InvertedPendulum
         # Rewards close to [-?,10] for InvertedDoulblePendulum
         # (bonus for 'alive', penalty for dist from vertical)
         # Rewards close to [-1,1] for InvertedPendulumSwingup
         #
         # Locomotion envs have several non-trivial components contributing to
-        # the reward. It still makes sense to divide by total number of steps,
-        # but the resulting range is not that simple to compute.
+        # the reward. It still might make sense to divide by total number of
+        # steps, but the resulting range is not that simple to compute.
         #
         return rwd/self._env._max_episode_steps
 
@@ -326,15 +329,6 @@ class AuxBulletEnv(gym.Env):
             nms = ['']*low.shape[0]
         assert(len(nms)==low.shape[0])
         return nms, low, high
-
-    def stalled(self, state, low_dim_nms):
-        if self.base_env_name.startswith(('CartPole', 'Inverted')): return False
-        vels = []
-        for i, nm in enumerate(low_dim_nms):
-            if '_vel' in nm: vels.append(np.abs(state[i]))
-        is_stalled = np.array(vels).max() < 0.1
-        #print('is_stalled', is_stalled, 'vels', vels, 'state', state)
-        return is_stalled
 
     def compute_cam_vals(self):
         base_pos = self.get_base_pos()
