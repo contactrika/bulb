@@ -11,7 +11,7 @@ from .rearrange_env import RearrangeEnv
 
 
 class UreacherRearrangeEnv(RearrangeEnv):
-    def __init__(self, version, max_episode_len, control_mode='torque',
+    def __init__(self, version, max_episode_steps, control_mode='torque',
                  obs_resolution=64, obs_ptcloud=False, variant='Ycb',
                  rnd_init_pos=False, statics_in_lowdim=False,
                  visualize=False, debug_level=0):
@@ -26,7 +26,7 @@ class UreacherRearrangeEnv(RearrangeEnv):
             visualize=visualize, cam_dist=0.4, cam_yaw=90, cam_pitch=-89,
             cam_target=(0.0, 0, 0), default_ground=False)
         super(UreacherRearrangeEnv, self).__init__(
-            version=version, max_episode_len=max_episode_len,
+            version=version, max_episode_steps=max_episode_steps,
             obs_resolution=obs_resolution, obs_ptcloud=obs_ptcloud,
             variant=variant, rnd_init_pos=rnd_init_pos,
             statics_in_lowdim=statics_in_lowdim, debug_level=debug_level)

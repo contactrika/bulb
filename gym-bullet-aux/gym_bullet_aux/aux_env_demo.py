@@ -21,7 +21,6 @@ from .envs.rearrange_utils import test_override
 
 
 def play(env, num_episodes, debug, viz):
-    noop_action = np.nan * np.zeros(env.action_space.shape)
     for epsd in range(num_episodes):
         print('------------ Play episode ', epsd, '------------------')
         obs = env.reset()
@@ -38,8 +37,7 @@ def play(env, num_episodes, debug, viz):
             next_obs, rwd, done, info = env.step(act)
             if viz: time.sleep(0.05)
             if done:
-                #msg = 'Play epsd #{:d}'
-                #logging.info(msg.format(epsd))
+                #logging.info(f'Play epsd #{epsd:d}')
                 break
             step += 1
             if debug and step%5==0: env.render_obs(debug_out_dir='/tmp/')
@@ -70,8 +68,9 @@ def main(args):
     nm_core, nm_vrsn,  = args.env_name.split('-')
     nm_core += 'Viz' if args.viz else 'Debug' if args.debug else ''
     env = gym.make(nm_core+'-'+nm_vrsn); env.seed(args.seed)
-    print('Created env', args.env_name, 'with observation_space',
-          env.observation_space.shape, 'action_space', env.action_space.shape)
+    print('Created ', args.env_name, 'with observation_space',
+          env.observation_space.shape, 'action_space', env.action_space.shape,
+          'max_episode_steps', env.max_episode_steps)
     play(env, args.num_episodes, args.debug, args.viz)
     env.close()
 

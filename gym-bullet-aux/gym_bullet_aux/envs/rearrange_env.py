@@ -80,7 +80,7 @@ class RearrangeEnv(gym.Env):
     # to not report dims or inertia diagonal correctly; so use hard-coded init.
     CYLINDER_DEFAULT_DIMS = [0.06, 0.06, 0.12/2]
 
-    def __init__(self, version, max_episode_len, obs_resolution, obs_ptcloud,
+    def __init__(self, version, max_episode_steps, obs_resolution, obs_ptcloud,
                  variant, rnd_init_pos, statics_in_lowdim, debug_level=0):
         if debug_level>0: print('RearrangeEnv.__init__()...')
         # Note: RearrangeEnv expects that we created self.robot already.
@@ -93,7 +93,7 @@ class RearrangeEnv(gym.Env):
         self.rnd_init_pos = rnd_init_pos
         self.num_init_rnd_act = 10 if rnd_init_pos else 0
         self.statics_in_lowdim = statics_in_lowdim
-        self.max_episode_len = max_episode_len
+        self._max_episode_steps = max_episode_steps
         self.num_action_repeats = 4 # apply same torque action k num sim steps
         self.obs_resolution = obs_resolution
         self.obs_ptcloud = obs_ptcloud
@@ -284,6 +284,10 @@ class RearrangeEnv(gym.Env):
     def seed(self, seed):
         np.random.seed(seed)
 
+    @property
+    def max_episode_steps(self):
+        return self._max_episode_steps
+
     def reset(self):
         self.stepnum = 0
         self.done = False  # used to avoid losing last frame in vec envs
@@ -333,11 +337,11 @@ class RearrangeEnv(gym.Env):
         # Report reward starts and other info.
         rwd = self.compute_reward()
         self.episode_rwd += rwd
-        done = (self.stepnum==self.max_episode_len) or not ee_ok
+        done = (self.stepnum == self._max_episode_steps) or not ee_ok
         info = {'aux': next_aux}
         if done:
             # Unused steps get a reward same as the last ok step
-            self.episode_rwd += rwd * (self.max_episode_len - self.stepnum)
+            self.episode_rwd += rwd * (self._max_episode_steps - self.stepnum)
             info['episode'] = {'r': float(self.episode_rwd), 'l': self.stepnum}
             if self.debug_level>0: print('tot_rwd {:.4f}'.format(self.episode_rwd))
             self.done = True; done = False  # will repeat last frame
@@ -357,7 +361,7 @@ class RearrangeEnv(gym.Env):
             dist = np.linalg.norm(np.array(obj_pos[:2]) - np.array(tgt_pos[:2]))
             dists.append(min(dist,1.0))   # max distance is 1 meter
         mean_dist = np.array(dists).mean()
-        rwd = (1.0-mean_dist)/float(self.max_episode_len)
+        rwd = (1.0-mean_dist)/float(self._max_episode_steps)
         return rwd
 
     def render_obs(self, debug_out_dir=None):

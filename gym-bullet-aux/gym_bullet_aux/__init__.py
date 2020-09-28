@@ -40,8 +40,8 @@ for base_env_name in gym_envs:
 
 # Register rearrangement envs.
 num_versions = 6*2  # 6 versions and their black-background variants
+max_episode_steps = 50  # pass this explicitly to env instead of wrapping
 for robot in ['Ureacher', 'Reacher', 'Franka']:
-    max_episode_len = 50  # don't use max_episode_steps to avoid TimeLimit wrap
     for variant in ['Ycb', 'OneYcb', 'Geom', 'OneGeom']:
         for rnd_init_pos in [False, True]:
             for resolution in [None, 64, 128, 256, 512, 1024, 2048]:
@@ -59,18 +59,19 @@ for robot in ['Ureacher', 'Reacher', 'Franka']:
                                 entry_point='gym_bullet_aux.envs:'+robot+'RearrangeEnv',
                                 reward_threshold=1.0,
                                 nondeterministic=True,
-                                kwargs={'version':version,
-                                        'max_episode_len':max_episode_len,
+                                kwargs={'version':version, 'variant':variant,
+                                        'max_episode_steps':max_episode_steps,
                                         'obs_resolution':resolution,
                                         'obs_ptcloud':obs_ptcloud,
-                                        'variant':variant,
                                         'rnd_init_pos':rnd_init_pos,
                                         'statics_in_lowdim':False,
                                         'visualize':(debug_level>=2),
                                         'debug_level':debug_level})
+                            #print(env_id)
 
 # Register BlockOnIncline
 scale_dict = {'': 2.5, 'Md': 1.5, 'Sm': 1.0}
+max_episode_steps = 50  # pass this explicitly to env instead of wrapping
 for variant in ['Ycb', 'Geom', 'YcbFric', 'GeomFric',
                 'YcbLD', 'GeomLD', 'YcbFricLD', 'GeomFricLD',
                 'YcbNorndLD', 'GeomNorndLD']:
@@ -90,6 +91,7 @@ for variant in ['Ycb', 'Geom', 'YcbFric', 'GeomFric',
                     register(id=rid, entry_point='gym_bullet_aux.envs:BlockOnInclineEnv',
                              nondeterministic=True,
                              kwargs={'version': version, 'variant': variant_arg,
+                                     'max_episode_steps':max_episode_steps,
                                      'scale': scale, 'randomize': randomize,
                                      'report_fric': report_fric,
                                      'obs_resolution': obs_resolution,

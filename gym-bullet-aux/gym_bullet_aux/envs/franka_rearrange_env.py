@@ -13,7 +13,7 @@ from .rearrange_env import RearrangeEnv
 
 
 class FrankaRearrangeEnv(RearrangeEnv):
-    def __init__(self, version, max_episode_len,
+    def __init__(self, version, max_episode_steps,
                  control_mode='torque', obs_resolution=64, obs_ptcloud=False,
                  variant='Ycb', rnd_init_pos=False, statics_in_lowdim=False,
                  visualize=False, debug_level=0):
@@ -34,7 +34,7 @@ class FrankaRearrangeEnv(RearrangeEnv):
         #if qpos is not None: self.robot.reset_to_qpos(qpos)
         # Note: RearrangeEnv expects that we created self.robot already.
         super(FrankaRearrangeEnv, self).__init__(
-            version=version, max_episode_len=max_episode_len,
+            version=version, max_episode_steps=max_episode_steps,
             obs_resolution=obs_resolution, obs_ptcloud=obs_ptcloud,
             variant=variant, rnd_init_pos=rnd_init_pos,
             statics_in_lowdim=statics_in_lowdim, debug_level=debug_level)
@@ -46,6 +46,9 @@ class FrankaRearrangeEnv(RearrangeEnv):
                 cameraDistance=0.44, cameraYaw=self.robot.cam_yaw,
                 cameraPitch=-65, cameraTargetPosition=(0.05, 0, 0))
         self.rnd_qpos_fxn = self.qpos_for_random_ee_pose
+
+    def close(self):
+        self.robot.disconnect()
 
     def qpos_for_random_ee_pose(self):
         dim = 3+3  # EE pos + Euler angles ori

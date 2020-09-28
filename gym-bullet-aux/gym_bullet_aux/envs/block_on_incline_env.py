@@ -53,8 +53,8 @@ class BlockOnInclineEnv(gym.Env):
     FLAT_STATE_WFRIC_MAXS = np.array(
         [NVRNTS, NVRNTS, MAX_FRIC, MAX_THETA, CLIP_POS_X, CLIP_VEL])
 
-    def __init__(self, version, variant, scale=2.5,
-                 obs_resolution=64, obs_ptcloud=False,
+    def __init__(self, version, variant, max_episode_steps=50,
+                 scale=2.5, obs_resolution=64, obs_ptcloud=False,
                  report_fric=False, randomize=True,
                  visualize=False, debug_level=0):
         self.version = version
@@ -66,7 +66,7 @@ class BlockOnInclineEnv(gym.Env):
         self.obs_ptcloud = obs_ptcloud  # whether obs should be point clouds
         self.randomize = randomize
         self.report_fric = report_fric
-        self.max_episode_len = 50
+        self._max_episode_steps = max_episode_steps
         self.nskip = 4  # sim nskip steps at a time
         self.obj_init_pos = np.array([-0.05,0,0.7])
         self.texture_id = 0; self.obj_mass = 0.05; self.fric = 0.5  # will reset
@@ -205,6 +205,10 @@ class BlockOnInclineEnv(gym.Env):
     def seed(self, seed):
         np.random.seed(seed)
 
+    @property
+    def max_episode_steps(self):
+        return self._max_episode_steps
+
     def reset(self):
         self.stepnum = 0
         self.done = False  # used to avoid losing last frame in vec envs
@@ -246,7 +250,7 @@ class BlockOnInclineEnv(gym.Env):
             self.block_id, self.obj_init_pos.tolist(),
             pybullet.getQuaternionFromEuler(rnd_rpy))
         init_step = 0; rnd_start = 0.05+np.random.rand(1)[0]*0.1
-        while init_step<self.max_episode_len:
+        while init_step<self._max_episode_steps:
             self.sim.stepSimulation()  # initial fall
             block_pos, _ = self.sim.getBasePositionAndOrientation(self.block_id)
             if block_pos[0]>rnd_start: break
@@ -280,7 +284,7 @@ class BlockOnInclineEnv(gym.Env):
         block_pos, _ = self.sim.getBasePositionAndOrientation(self.block_id)
         rwd = self.compute_reward(block_pos)
         self.episode_rwd += rwd
-        done = (self.stepnum >= self.max_episode_len or
+        done = (self.stepnum >= self._max_episode_steps or
                 block_pos[0]>=BlockOnInclineEnv.MAX_POS_X or
                 block_pos[0]<=BlockOnInclineEnv.MIN_POS_X or
                 np.abs(block_pos[1])>=BlockOnInclineEnv.MAX_POS_Y)

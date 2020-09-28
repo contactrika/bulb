@@ -140,15 +140,19 @@ class AuxBulletEnv(gym.Env):
             # used by env_bases.py/move_and_look_at()
             self._env.unwrapped.camera._p = self._sim
         if self.debug_level>0:
-            print('Created Aux', base_env_name, 'with obs/action space')
-            print(self.observation_space, self.action_space)
-            print('max_episode_steps', self._env._max_episode_steps)
+            print('Created Aux', base_env_name, 'with observation_space',
+                  self.observation_space, 'action_space', self.action_space,
+                  'max_episode_steps', self.max_episode_steps)
 
     def seed(self, seed):
         np.random.seed(seed)
 
     def close(self):
         self._env.unwrapped.close()
+
+    @property
+    def max_episode_steps(self):
+        return self._env._max_episode_steps
 
     def reset(self):
         self.stepnum = 0
