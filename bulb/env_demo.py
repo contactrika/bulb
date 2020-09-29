@@ -51,7 +51,7 @@ def get_args():
     parser = argparse.ArgumentParser(description="EnvDemo")
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--env_name', type=str,
-                        default='AuxReacherBulletEnv-v0', help='Env name')
+                        default='AntBulletEnvLD-v0', help='Env name')
     parser.add_argument('--num_episodes', type=int, default=22,
                         help='Number of episodes')
     parser.add_argument('--debug', action='store_true',

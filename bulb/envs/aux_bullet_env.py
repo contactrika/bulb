@@ -57,6 +57,7 @@ class AuxBulletEnv(gym.Env, AuxEnv):
                 self._env.render(mode='rgb_array')  # init cam dist vars
             if visualize: self._env.render(mode='human')  # turn on debug viz
         # Zoom in camera.
+        assert(hasattr(self._env.unwrapped, '_cam_dist'))
         if base_env_name.startswith('Reacher'):
             self._env.unwrapped._cam_dist = 0.55
             self._env.unwrapped._cam_pitch = -90
@@ -111,20 +112,21 @@ class AuxBulletEnv(gym.Env, AuxEnv):
                 dtype=np.float32)
         self.action_space = self._env.action_space
         # Turn on visualization if needed.
-        if visualize and obs_resolution is not None:
-            pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_GUI, 1)
-            pybullet.configureDebugVisualizer(
-                pybullet.COV_ENABLE_RGB_BUFFER_PREVIEW,1)
-            pybullet.configureDebugVisualizer(
-                pybullet.COV_ENABLE_DEPTH_BUFFER_PREVIEW,1)
-            pybullet.configureDebugVisualizer(
-                pybullet.COV_ENABLE_SEGMENTATION_MARK_PREVIEW,1)
+        if visualize:
             self._sim.resetDebugVisualizerCamera(
                 self._env.unwrapped._cam_dist, self._env.unwrapped._cam_yaw,
                 self._env.unwrapped._cam_pitch, base_pos)
-        if visualize and hasattr(self._env.unwrapped, 'camera'):
-            # used by env_bases.py/move_and_look_at()
-            self._env.unwrapped.camera._p = self._sim
+            if self._obs_resolution is not None:
+                pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_GUI, 1)
+                pybullet.configureDebugVisualizer(
+                    pybullet.COV_ENABLE_RGB_BUFFER_PREVIEW,1)
+                pybullet.configureDebugVisualizer(
+                    pybullet.COV_ENABLE_DEPTH_BUFFER_PREVIEW,1)
+                pybullet.configureDebugVisualizer(
+                    pybullet.COV_ENABLE_SEGMENTATION_MARK_PREVIEW,1)
+            if hasattr(self._env.unwrapped, 'camera'):
+                # used by env_bases.py/move_and_look_at()
+                self._env.unwrapped.camera._p = self._sim
         if self._debug:
             print('Created Aux', base_env_name, 'with observation_space',
                   self.observation_space, 'action_space', self.action_space,

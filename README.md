@@ -11,15 +11,18 @@ This repository contains code for the environments presented in:
 }
 ```
 
+The environments implement [AuxEnv](bulb/envs/aux_env.py) interface, which
+enables reporting both high-dimensional state 
+(RGB images or point clouds) and low-dimensional state 
+(e.g. robot joint angles, velocities, contacts).
+ 
 *RearrangeGeom*, *RearrangeYcb*, *YcbOnIncline* 
 environments proposed by the arXiv paper are visualized below:
 
 ![Rearrange envs](misc/img/Rearrange_and_YCB.png)
 
 The package also contains wrappers for existing pyBullet benchmark 
-environments to enable reporting both high-dimensional state 
-(RGB images or point clouds) and low-dimensional state 
-(e.g. robot joint angles, velocities, contacts):
+environments to enable reporting both high-dimensional and low-dimensional state.
 
 ![pyBullet benchmarks](misc/img/pyBullet_benchmarks.png)
 
