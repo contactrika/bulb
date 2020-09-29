@@ -60,7 +60,7 @@ class AuxBulletEnv(gym.Env, AuxEnv):
         assert(hasattr(self._env.unwrapped, '_cam_dist'))
         if base_env_name.startswith('Reacher'):
             self._env.unwrapped._cam_dist = 0.55
-            self._env.unwrapped._cam_pitch = -90
+            self._env.unwrapped._cam_pitch = -89  # -90 doesn't look ok on debug
         elif base_env_name.startswith('InvertedPendulum'):
             self._env.unwrapped._cam_dist = 1.8  # 1.85
         elif base_env_name.startswith('InvertedDoublePendulum'):
@@ -124,9 +124,6 @@ class AuxBulletEnv(gym.Env, AuxEnv):
                     pybullet.COV_ENABLE_DEPTH_BUFFER_PREVIEW,1)
                 pybullet.configureDebugVisualizer(
                     pybullet.COV_ENABLE_SEGMENTATION_MARK_PREVIEW,1)
-            if hasattr(self._env.unwrapped, 'camera'):
-                # used by env_bases.py/move_and_look_at()
-                self._env.unwrapped.camera._p = self._sim
         if self._debug:
             print('Created Aux', base_env_name, 'with observation_space',
                   self.observation_space, 'action_space', self.action_space,
@@ -167,7 +164,7 @@ class AuxBulletEnv(gym.Env, AuxEnv):
         # For mobile envs: could look at the robot from different angles.
         #if self._mobile:
         #    self._env.unwrapped._cam_yaw = (np.random.rand()-0.5)*360
-        if self._visualize:
+        if self._visualize and self._mobile:
             self._sim.resetDebugVisualizerCamera(
                 self._env.unwrapped._cam_dist, self._env.unwrapped._cam_yaw,
                 self._env.unwrapped._cam_pitch, self.get_base_pos())
@@ -199,10 +196,10 @@ class AuxBulletEnv(gym.Env, AuxEnv):
             #    print('low_dim_state', low_dim_state)
             #    assert(False)
         if done: info['episode'] = {'r': self._episode_rwd, 'l': self._stepnum}
-        if self._visualize and self._mobile and \
-                hasattr(self._env.unwrapped, 'camera_adjust'):
-            self._env.unwrapped.body_xyz = self.get_base_pos()
-            self._env.unwrapped.camera_adjust()
+        if self._visualize and self._mobile:
+            self._sim.resetDebugVisualizerCamera(
+            self._env.unwrapped._cam_dist, self._env.unwrapped._cam_yaw,
+            self._env.unwrapped._cam_pitch, self.get_base_pos())
         return obs, rwd, done, info
 
     def render(self, mode='rgb_array'):
