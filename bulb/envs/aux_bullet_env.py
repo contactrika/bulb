@@ -3,6 +3,7 @@ A unified interface for a set of standard PyBullet gym/robotschool envs that
 reports high-dimensional observations (images, point clouds) and also adds
 low-dimensional state (joint angles), following AuxEnv API.
 """
+import os
 
 import numpy as np
 np.set_printoptions(precision=4, linewidth=150, threshold=np.inf, suppress=True)
@@ -182,11 +183,12 @@ class AuxBulletEnv(gym.Env, AuxEnv):
         # Report reward starts and other info.
         self._episode_rwd += rwd
         if self._debug:  # print low-dim state
-            print('act', action)
+            msg = f'pid {os.getpid():d} step {self._stepnum:d} done {done:d} act'
+            msg += np.array2string(action, precision=2,
+                                   formatter={'float_kind':'{:0.2f}'.format}, )
             for i in range(len(self.low_dim_state_names)):
-                print('step {:d}: {:s} {:0.4f} '.format(
-                    self._stepnum, self.low_dim_state_names[i], state[i]), end='')
-            print('')
+                msg += f' {self.low_dim_state_names[i]:s} {state[i]:0.4f}'
+            print(msg)
         #if self._debug:
             # sanity check: aux should be same as low-dim state reported by env
             # except for envs that modify state after applying action (Hopper).

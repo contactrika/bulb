@@ -42,15 +42,14 @@ for base_env_name in gym_envs:
                                 'obs_resolution':resolution,
                                 'obs_ptcloud':obs_ptcloud,
                                 'random_colors':random_colors,
-                                'debug':(dbg >= 1),
-                                'visualize':(dbg >= 2)}
+                                'debug': dbg==1, 'visualize': dbg==2}
                         register(id=env_id, entry_point='bulb.envs:AuxBulletEnv',
                                  kwargs=kwargs)
                         #print(env_id)
 
 # Register rearrangement envs.
 num_versions = 6*2  # 6 versions and their black-background variants
-for robot in ['Ureacher', 'Reacher', 'Franka']:
+for robot in ['Reacher', 'Franka']:
     for variant in ['Ycb', 'OneYcb', 'Geom', 'OneGeom']:
         for resolution in RESOLUTIONS:
             for obs_ptcloud in [False, True]:
@@ -71,8 +70,7 @@ for robot in ['Ureacher', 'Reacher', 'Franka']:
                                     'obs_ptcloud': obs_ptcloud,
                                     'rnd_init_pos': True,
                                     'statics_in_lowdim': False,
-                                    'debug': (dbg >= 1),
-                                    'visualize': (dbg >= 2)})
+                                    'debug': dbg==1, 'visualize': dbg==2})
                         #print(env_id)
 
 # Register BlockOnIncline envs: YcbOnIncline, GeomOnIncline, etc.
@@ -98,6 +96,5 @@ for variant in ['Ycb', 'Geom']:
                                          'scale': scale,
                                          'randomize': True,
                                          'report_fric': False,
-                                         'debug':dbg>=1,
-                                         'visualize':dbg>=2})
+                                         'debug': dbg==1, 'visualize': dbg==2})
                         #print(env_id)
