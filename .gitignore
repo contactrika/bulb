@@ -1,4 +1,4 @@
-AUX_ENV
+BULB_ENV
 .idea
 **/*.egg-info/
 **/__pycache__/
