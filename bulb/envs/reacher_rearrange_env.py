@@ -14,8 +14,8 @@ from .rearrange_env import RearrangeEnv
 class ReacherRearrangeEnv(RearrangeEnv):
     def __init__(self, version, variant='Ycb',
                  obs_resolution=64, obs_ptcloud=False,
-                 rnd_init_pos=False, statics_in_lowdim=False,
-                 control_mode='torque', debug=False, visualize=False):
+                 rnd_init_pos=False, control_mode='torque',
+                 debug=False, visualize=False):
         # Note: RearrangeEnv expects that we create self.robot.
         if obs_ptcloud:
             data_folder = os.path.join(os.path.split(__file__)[0], 'data')
@@ -41,8 +41,7 @@ class ReacherRearrangeEnv(RearrangeEnv):
         super(ReacherRearrangeEnv, self).__init__(
             version=version, variant=variant,
             obs_resolution=obs_resolution, obs_ptcloud=obs_ptcloud,
-            rnd_init_pos=rnd_init_pos, statics_in_lowdim=statics_in_lowdim,
-            debug=debug)
+            rnd_init_pos=rnd_init_pos, debug=debug)
 
     def step(self, action):
         if self._obs_ptcloud:

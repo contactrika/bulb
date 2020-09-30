@@ -86,9 +86,9 @@ def convert_all(inp, fxn):
 
 def test_override(env):
     env.robot.reset()
-    # Note: URDF files speicfy height (or length) for the cylinder, but we
-    # specify halfHeight to be consistent (with raidus and halfExtent for
-    # shpere and cuboid). For box: URDF says it expects halfExtents, but seems
+    # Note: URDF files specify height (or length) for the cylinder, but we
+    # specify halfHeight to be consistent (with radius and halfExtent for
+    # sphere and cuboid). For box: URDF says it expects halfExtents, but seems
     # to actually specify h,w,d... TODO: figure out why this is the case
     bkgrnd = np.array([220,200,170])/255.0
     obj_props = np.array(
@@ -183,3 +183,29 @@ def mat2quat(mat):
             q[it.multi_index] *= -1
         it.iternext()
     return q
+
+
+def quat2mat(quat):
+    """ Convert Quaternion to Rotation Matrix.  See rotation.py for notes """
+    quat = np.asarray(quat, dtype=np.float64)
+    assert quat.shape[-1] == 4, "Invalid shape quat {}".format(quat)
+
+    w, x, y, z = quat[..., 0], quat[..., 1], quat[..., 2], quat[..., 3]
+    Nq = np.sum(quat * quat, axis=-1)
+    s = 2.0 / Nq
+    X, Y, Z = x * s, y * s, z * s
+    wX, wY, wZ = w * X, w * Y, w * Z
+    xX, xY, xZ = x * X, x * Y, x * Z
+    yY, yZ, zZ = y * Y, y * Z, z * Z
+
+    mat = np.empty(quat.shape[:-1] + (3, 3), dtype=np.float64)
+    mat[..., 0, 0] = 1.0 - (yY + zZ)
+    mat[..., 0, 1] = xY - wZ
+    mat[..., 0, 2] = xZ + wY
+    mat[..., 1, 0] = xY + wZ
+    mat[..., 1, 1] = 1.0 - (xX + zZ)
+    mat[..., 1, 2] = yZ - wX
+    mat[..., 2, 0] = xZ - wY
+    mat[..., 2, 1] = yZ + wX
+    mat[..., 2, 2] = 1.0 - (xX + yY)
+    return np.where((Nq > _FLOAT_EPS)[..., np.newaxis, np.newaxis], mat, np.eye(3))

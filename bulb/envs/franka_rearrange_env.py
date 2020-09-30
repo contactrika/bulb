@@ -14,8 +14,8 @@ from .rearrange_env import RearrangeEnv
 class FrankaRearrangeEnv(RearrangeEnv):
     def __init__(self, version, variant='Ycb',
                  obs_resolution=64, obs_ptcloud=False,
-                 rnd_init_pos=False, statics_in_lowdim=False,
-                 control_mode='torque', debug=False, visualize=False):
+                 rnd_init_pos=False, control_mode='torque',
+                 debug=False, visualize=False):
         self.robot = BulletManipulator(
             os.path.join('franka_robot', 'franka_small_fingers.urdf'),
             control_mode=control_mode,
@@ -29,8 +29,7 @@ class FrankaRearrangeEnv(RearrangeEnv):
         super(FrankaRearrangeEnv, self).__init__(
             version=version, variant=variant,
             obs_resolution=obs_resolution, obs_ptcloud=obs_ptcloud,
-            rnd_init_pos=rnd_init_pos, statics_in_lowdim=statics_in_lowdim,
-            debug=debug)
+            rnd_init_pos=rnd_init_pos, debug=debug)
         if visualize:
             pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_GUI, 1)
             pybullet.configureDebugVisualizer(

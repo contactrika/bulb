@@ -63,7 +63,7 @@ class AuxBulletEnv(gym.Env, AuxEnv):
             self._env.unwrapped._cam_dist = 0.55
             self._env.unwrapped._cam_pitch = -89  # -90 doesn't look ok on debug
         elif base_env_name.startswith('InvertedPendulum'):
-            self._env.unwrapped._cam_dist = 1.8  # 1.85
+            self._env.unwrapped._cam_dist = 2.2  # was: 1.8
         elif base_env_name.startswith('InvertedDoublePendulum'):
             self._env.unwrapped._cam_dist = 2.8
             self._env.unwrapped._cam_pitch = -1.0

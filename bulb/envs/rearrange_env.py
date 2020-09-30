@@ -4,6 +4,7 @@ Base class for visually-realistic env for re-arrangement tasks.
 import os
 
 import gym
+import pybullet
 
 from ..utils import render_utils
 from .aux_env import AuxEnv
@@ -72,12 +73,11 @@ class RearrangeEnv(gym.Env, AuxEnv):
     CYLINDER_DEFAULT_DIMS = [0.06, 0.06, 0.12/2]
 
     def __init__(self, version, variant, obs_resolution, obs_ptcloud,
-                 rnd_init_pos, statics_in_lowdim, debug=False):
+                 rnd_init_pos, debug=False):
         self._version = version
         self._variant = variant
         self._rnd_init_pos = rnd_init_pos
         self._num_init_rnd_act = 10 if rnd_init_pos else 0
-        self._statics_in_lowdim = statics_in_lowdim
         self._max_episode_steps = 50
         self._num_action_repeats = 4 # apply same torque action k num sim steps
         self._obs_resolution = obs_resolution
@@ -97,12 +97,9 @@ class RearrangeEnv(gym.Env, AuxEnv):
         borders_file = brpfx+RearrangeEnv.TABLE_TEXTURES[self._version]+'.urdf'
         self._border_id = self.robot.sim.loadURDF(
             borders_file, useFixedBase=True, globalScaling=0.8)
-        if RearrangeEnv.TABLE_TEXTURES[self._version]!= '':
-            self._bkgrnd = RearrangeEnv.TABLE_TEXTURES_RGB[self._version]
-        else:
-            self._bkgrnd = np.array([0, 0, 0])
-            self.robot.sim.changeVisualShape(self._border_id, 0,
-                                             rgbaColor=(*self._bkgrnd, 1))
+        if RearrangeEnv.TABLE_TEXTURES[self._version]== '':
+            self.robot.sim.changeVisualShape(
+                self._border_id, 0, rgbaColor=(0,0,0,1))  # black background
         self._blank_texture_id = self.robot.sim.loadTexture(
             os.path.join(data_dir, 'table', 'table.png'))
         # Load objects.
@@ -209,15 +206,16 @@ class RearrangeEnv(gym.Env, AuxEnv):
         return next_obs, rwd, done, info
 
     def override_state(self, ld_state):
-        qpos, bkgrnd, obj_props, obj_poses, obj_quats = \
+        qpos, obj_props, obj_poses, obj_quats = \
             self.low_dim_to_sim_state(ld_state)
         self.robot.reset_to_qpos(qpos)
-        self._bkgrnd[:] = bkgrnd[:]
-        self.robot.sim.changeVisualShape(
-                self._border_id, 0, rgbaColor=(*bkgrnd, 1),
-                textureUniqueId=self._blank_texture_id)
-        if obj_props is not None:
-            self.set_obj_state(obj_props, obj_poses, obj_quats)
+        self._object_props[:] = obj_props[:]
+        for objid in range(len(self._object_ids)):
+            # Do not override object properties, since we use mesh objects.
+            #self.override_object_properties()
+            self.robot.sim.resetBasePositionAndOrientation(
+                self._object_ids[objid], obj_poses[objid].tolist(),
+                obj_quats[objid].tolist())
 
     def render(self, mode='rgb_array', close=False):
         pass  # done by pybullet GUI
@@ -252,7 +250,6 @@ class RearrangeEnv(gym.Env, AuxEnv):
         return rwd
 
     def compute_sim_state(self):
-        bkgrnd = self._bkgrnd[:]  # include background and objects' state
         obj_props = np.copy(self._object_props)
         obj_poses = []; obj_quats = []
         for obj in self._object_ids:
@@ -264,21 +261,17 @@ class RearrangeEnv(gym.Env, AuxEnv):
         obj_poses = np.clip(obj_poses, RearrangeEnv.OBJ_XYZ_MINS,
                             RearrangeEnv.OBJ_XYZ_MAXS)
         obj_quats = np.array(obj_quats)
-        return bkgrnd, obj_props, obj_poses, obj_quats
+        return obj_props, obj_poses, obj_quats
 
     def compute_low_dim_state(self):
-        bkgrnd, obj_props, obj_poses, obj_quats = self.compute_sim_state()
+        obj_props, obj_poses, obj_quats = self.compute_sim_state()
         ld_state = self.sim_to_low_dim_state(
-            bkgrnd, obj_props, obj_poses, obj_quats)
+            obj_props, obj_poses, obj_quats)
         return ld_state
 
     def compute_low_dim_state_names(self):
         ld_names = []
-        bkgrnd, obj_props, obj_poses, obj_quats = self.compute_sim_state()
-        if self._statics_in_lowdim:
-            for b in range(bkgrnd.shape[0]): ld_names.append('bkgrnd'+str(b))
-        else:
-            ld_names.append('version_id')
+        obj_props, obj_poses, obj_quats = self.compute_sim_state()
         qpos = self.robot.get_qpos()
         for j in range(qpos.shape[0]):
             ld_names.append('j'+str(j)+'_sin')
@@ -290,17 +283,15 @@ class RearrangeEnv(gym.Env, AuxEnv):
             obj_shape_name = RearrangeEnv.NAME_FROM_SHAPE[shape_id]
             if obj_shape_name=='': obj_shape_name = 'obj'
             obj_pfx = obj_shape_name+str(i)
-            if self._statics_in_lowdim:
-                for j in range(props_sz):
-                    #nm = RearrangeEnv.SIM_PARAM_OBJ_PROPS_NAMES[j]
-                    ld_names.append('obj'+str(i)+'_prop'+str(j))
+            for j in range(props_sz):
+                #nm = RearrangeEnv.SIM_PARAM_OBJ_PROPS_NAMES[j]
+                ld_names.append('obj'+str(i)+'_prop'+str(j))
             ld_names.append(obj_pfx+'_x')
             ld_names.append(obj_pfx+'_y')
             ld_names.append(obj_pfx+'_z')
             for j in range(9): ld_names.append(obj_pfx+'_rot'+str(j))
         # Sanity checks.
-        ld_state = self.sim_to_low_dim_state(
-            bkgrnd, obj_props, obj_poses, obj_quats)
+        ld_state = self.sim_to_low_dim_state(obj_props, obj_poses, obj_quats)
         if ld_state.shape[0]!=len(ld_names):
             print('ld_state.shape[0]', ld_state.shape[0],
                   ' vs len(ld_names)', len(ld_names), ld_names)
@@ -333,131 +324,108 @@ class RearrangeEnv(gym.Env, AuxEnv):
         for t in range(20):  # let the objects emerge from problematic poses
             self.robot.sim.stepSimulation()
 
-    def sim_to_low_dim_state(self, bkgrnd, obj_props, obj_poses, obj_quats):
-        obj_info = []
-        # Add background and static object properties (if needed)
-        if self._statics_in_lowdim:
-            ld_state = bkgrnd
-            if ((obj_props<RearrangeEnv.SIM_PARAM_OBJ_MINS).any() or
-                (obj_props>RearrangeEnv.SIM_PARAM_OBJ_MAXS).any()):
-                print('obj_props outside min/max bounds'); print(obj_props)
-                print('deltas:')
-                print(obj_props-RearrangeEnv.SIM_PARAM_OBJ_MINS)
-                print(RearrangeEnv.SIM_PARAM_OBJ_MAXS-obj_props)
-                assert(False)  # obj_props outside min/max bounds
-            obj_props_normed = normalize(
-                obj_props, RearrangeEnv.SIM_PARAM_OBJ_MINS,
-                RearrangeEnv.SIM_PARAM_OBJ_MAXS)
-            obj_info.append(obj_props_normed)
-        else:
-            ld_state = float(self._version) / 10
+    def sim_to_low_dim_state(self, obj_props, obj_poses, obj_quats):
         # Add robot qpos.
         qpos = self.robot.get_qpos()
         #assert((qpos>=-np.pi).all() and (qpos<=np.pi).all())
         qpos_all_sin = np.sin(qpos).reshape(-1,1)
         qpos_all_cos = np.cos(qpos).reshape(-1,1)
         qpos_all_sin_cos = np.hstack([qpos_all_sin, qpos_all_cos])
-        ld_state = np.hstack([ld_state, qpos_all_sin_cos.reshape(-1)])
-        if obj_props is None: return ld_state
-        # Add object dynamics (pos, ori).
+        if obj_props is None: return qpos_all_sin_cos.reshape(-1)
+        # Add object properties and dynamics (pos, ori).
+        if ((obj_props<RearrangeEnv.SIM_PARAM_OBJ_MINS).any() or
+            (obj_props>RearrangeEnv.SIM_PARAM_OBJ_MAXS).any()):
+            print('obj_props outside min/max bounds'); print(obj_props)
+            print('deltas:')
+            print(obj_props-RearrangeEnv.SIM_PARAM_OBJ_MINS)
+            print(RearrangeEnv.SIM_PARAM_OBJ_MAXS-obj_props)
+            assert(False)  # obj_props outside min/max bounds
+        obj_props_normed = normalize(
+            obj_props, RearrangeEnv.SIM_PARAM_OBJ_MINS,
+            RearrangeEnv.SIM_PARAM_OBJ_MAXS)
         if ((obj_poses<RearrangeEnv.OBJ_XYZ_MINS).any() or
             (obj_poses>RearrangeEnv.OBJ_XYZ_MAXS).any()):
             print('obj_poses outside min/max bounds', obj_poses)
             assert(False)  # obj_poses outside min/max bounds
         obj_poses_normed = normalize(
             obj_poses, RearrangeEnv.OBJ_XYZ_MINS, RearrangeEnv.OBJ_XYZ_MAXS)
-        all_obj_rot = convert_all(obj_quats, 'quat_to_mat')
-        obj_info.append(obj_poses_normed)
-        obj_info.append(all_obj_rot)
-        ld_state = np.hstack([ld_state, np.hstack(obj_info).reshape(-1)])
+        all_obj_rot = quat2mat(np.array(obj_quats))
+        ld_state = np.hstack([
+            qpos_all_sin_cos.reshape(-1), obj_props_normed.reshape(-1),
+            obj_poses_normed.reshape(-1), all_obj_rot.reshape(-1)])
         return ld_state
 
     def low_dim_to_sim_state(self, ld_state):
-        assert(ld_state.min() >= 0 and ld_state.max() <= 1)
+        assert(ld_state.min() >= -1 and ld_state.max() <= 1)
         # Parse flat_state as static and dynamic simulation state.
         qpos_sz = self._ndof * 2  # dof*2 since angle as sin,cos
         # Parse out qpos. This always comes 1st, since it is always known.
-        qpos_sin_cos = ld_state[0:qpos_sz]
-        qpos = sin_cos_to_theta(qpos_sin_cos)
+        qpos_all_sin_cos = ld_state[0:qpos_sz]
+        qpos = sin_cos_to_theta(qpos_all_sin_cos)
         assert(qpos.min() >= -np.pi and qpos.max() <= np.pi)
         if ld_state.shape[0]==qpos_sz: return qpos, None, None, None, None
-        # Parse out background, objects' static and dynamic state.
-        bkgrnd_sz = len(RearrangeEnv.SIM_PARAM_INFO)
+        # Parse objects static and dynamic state.
         num_obj = len(self._object_ids)
         obj_prop_sz = len(RearrangeEnv.SIM_PARAM_OBJ_PROPS_NAMES) # static state
         obj_dyn_sz = 3+9  # obj pos (3D), ori as 3x3 rotation matrix
         obj_state_sz = num_obj*(obj_prop_sz + obj_dyn_sz)
-        assert(ld_state.shape[0] == (qpos_sz + bkgrnd_sz + obj_state_sz))
-        ofst = qpos_sz
-        bkgrnd = ld_state[ofst:ofst + bkgrnd_sz]
-        ofst += bkgrnd_sz
-        obj_state = ld_state[ofst:].reshape(num_obj, obj_prop_sz + obj_dyn_sz)
+        assert(ld_state.shape[0] == (qpos_sz + obj_state_sz))
+        ofst_strt = qpos_sz; ofst_fnsh = ofst_strt+num_obj*obj_prop_sz
+        obj_props_normed = ld_state[ofst_strt:ofst_fnsh]
+        ofst_strt = ofst_fnsh; ofst_fnsh = ofst_strt+num_obj*3  # 3D poses
+        obj_poses_normed = ld_state[ofst_strt:ofst_fnsh]
+        ofst_strt = ofst_fnsh; ofst_fnsh = ofst_strt+num_obj*9  # 3x3 rot matrix
+        all_obj_rot = ld_state[ofst_strt:ofst_fnsh]
         obj_props = denormalize(
-            obj_state[:,0:obj_prop_sz],
+            obj_props_normed.reshape(num_obj, obj_prop_sz),
             RearrangeEnv.SIM_PARAM_OBJ_MINS, RearrangeEnv.SIM_PARAM_OBJ_MAXS)
-        ofst = obj_prop_sz
         obj_poses = denormalize(
-            obj_state[:,ofst:ofst+3],
+            obj_poses_normed.reshape(num_obj, 3),
             RearrangeEnv.OBJ_XYZ_MINS, RearrangeEnv.OBJ_XYZ_MAXS)
-        ofst += 3
-        all_obj_rot = obj_state[:,ofst:ofst+9]
-        obj_quats = mat2quat(all_obj_rot)
-        return qpos, bkgrnd, obj_props, obj_poses, obj_quats
+        obj_quats = mat2quat(all_obj_rot.reshape(-1,3,3))
+        return qpos, obj_props, obj_poses, obj_quats
 
-    def set_obj_state(self, obj_props, obj_poses, obj_quats):
-        # Set background properties.
-        # TODO: figure out how to do background color... print(bkgrnd)
-        # Change color, shape, mass, friction, restitution of the objects.
-        num_obj = len(self._object_ids)
-        assert(obj_props.shape[0]==obj_poses.shape[0]==obj_quats.shape[0]==num_obj)
-        assert(obj_props.shape[1]==len(RearrangeEnv.SIM_PARAM_OBJ_PROPS_NAMES))
-        assert(obj_poses.shape[1]==3)
-        assert(obj_quats.shape[1]==4)
-        self._object_props[:] = obj_props[:]
-        for objid in range(len(self._object_ids)):
-            rgb_r, rgb_g, rgb_b, radius_a, radius_b, halfExtent, shape, mass, \
-                restitution, lat_fric, rol_fric, spin_fric = obj_props[objid]
-            viz_geom_type = RearrangeEnv.GEOM_FROM_SHAPE[int(round(shape))]
-            if viz_geom_type==pybullet.GEOM_MESH:
-                viz_geom_type = pybullet.GEOM_CYLINDER
-            set_z = (obj_poses is None)
-            if obj_poses is None: obj_poses = np.array(self._init_object_poses)
-            if set_z: obj_poses[objid][2] = halfExtent
-            if obj_quats is None: obj_quats = np.array(self._init_object_quats)
-            # Print information we parsed from sim_params
-            if self._debug:
-                print('set_obj_state(): obj_props', obj_props)
-                msg = 'createMultiBody for obj {:d}: rgb {:.4f} {:.4f} {:.4f}'
-                msg += ' radius_a {:.4f} radius_b {:.4f} halfExtent {:.4f}'
-                print(msg.format(objid, rgb_r, rgb_g, rgb_b,
-                                 radius_a, radius_b, halfExtent))
-                print('pos', obj_poses[objid])
-                msg = 'changeDynamics: mass {:.4f} restitution {:.4f}'
-                msg += ' lat_fric {:.4f} roll_fric {:.4f} spin_fric {:.4f}'
-                print(msg.format(mass, restitution, lat_fric, rol_fric, spin_fric))
-            # No way to update collision shape, need to remove and re-insert.
-            # https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=12034
-            self.robot.sim.removeBody(self._object_ids[objid])
-            new_viz_shape_id = pybullet.createVisualShape(
-                shapeType=viz_geom_type, rgbaColor=[rgb_r, rgb_g, rgb_b, 1.0],
-                radius=radius_a, length=halfExtent*2,
-                halfExtents=[radius_a, radius_b, halfExtent])
-            new_col_shape_id = pybullet.createCollisionShape(
-                shapeType=viz_geom_type,
-                radius=radius_a, height=halfExtent*2,
-                halfExtents=[radius_a, radius_b, halfExtent])
-            new_obj_id = pybullet.createMultiBody(
-                baseMass=mass, basePosition=obj_poses[objid].tolist(),
-                baseOrientation=obj_quats[objid].tolist(),
-                baseVisualShapeIndex=new_viz_shape_id,
-                baseCollisionShapeIndex=new_col_shape_id)
-            self._object_ids[objid] = new_obj_id
-            # TODO: Check whether pybullet changes inertial matrix based on
-            #  mass and shape type, or whether we need to re-specify manually.
-            self.robot.sim.changeDynamics(
-                self._object_ids[objid], -1, mass=mass, restitution=restitution,
-                lateralFriction=lat_fric, rollingFriction=rol_fric,
-                spinningFriction=spin_fric)
+    def override_object_properties(
+            self, objid, obj_props, obj_poses, obj_quats, debug=False):
+        # Change color, shape, mass, friction, restitution of the object.
+        rgb_r, rgb_g, rgb_b, radius_a, radius_b, halfExtent, shape, mass, \
+            restitution, lat_fric, rol_fric, spin_fric = obj_props[objid]
+        viz_geom_type = RearrangeEnv.GEOM_FROM_SHAPE[int(round(shape))]
+        if viz_geom_type==pybullet.GEOM_MESH:
+            viz_geom_type = pybullet.GEOM_CYLINDER
+        if debug:
+            print('override_object_properties with obj_props', obj_props)
+            msg = 'createMultiBody for obj {:d}: rgb {:.4f} {:.4f} {:.4f}'
+            msg += ' radius_a {:.4f} radius_b {:.4f} halfExtent {:.4f}'
+            print(msg.format(objid, rgb_r, rgb_g, rgb_b,
+                             radius_a, radius_b, halfExtent))
+            print('pos', obj_poses[objid])
+            msg = 'changeDynamics: mass {:.4f} restitution {:.4f}'
+            msg += ' lat_fric {:.4f} roll_fric {:.4f} spin_fric {:.4f}'
+            print(msg.format(mass, restitution, lat_fric, rol_fric, spin_fric))
+        # No way to update collision shape, need to remove and re-insert.
+        # https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=12034
+        self.robot.sim.removeBody(self._object_ids[objid])
+        new_viz_shape_id = pybullet.createVisualShape(
+            shapeType=viz_geom_type, rgbaColor=[rgb_r, rgb_g, rgb_b, 1.0],
+            radius=radius_a, length=halfExtent*2,
+            halfExtents=[radius_a, radius_b, halfExtent])
+        new_col_shape_id = pybullet.createCollisionShape(
+            shapeType=viz_geom_type,
+            radius=radius_a, height=halfExtent*2,
+            halfExtents=[radius_a, radius_b, halfExtent])
+        new_obj_id = pybullet.createMultiBody(
+            baseMass=mass, basePosition=obj_poses[objid].tolist(),
+            baseOrientation=obj_quats[objid].tolist(),
+            baseVisualShapeIndex=new_viz_shape_id,
+            baseCollisionShapeIndex=new_col_shape_id)
+        self._object_ids[objid] = new_obj_id
+        # TODO: Check whether pybullet changes inertial matrix based on
+        #  mass and shape type, or whether we need to re-specify manually.
+        self.robot.sim.changeDynamics(
+            self._object_ids[objid], -1, mass=mass, restitution=restitution,
+            lateralFriction=lat_fric, rollingFriction=rol_fric,
+            spinningFriction=spin_fric)
 
     def in_workspace(self):
         # First check whether all the objects are still in the workspace.

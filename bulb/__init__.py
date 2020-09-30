@@ -69,7 +69,6 @@ for robot in ['Reacher', 'Franka']:
                                     'obs_resolution': resolution,
                                     'obs_ptcloud': obs_ptcloud,
                                     'rnd_init_pos': True,
-                                    'statics_in_lowdim': False,
                                     'debug': dbg==1, 'visualize': dbg==2})
                         #print(env_id)
 
