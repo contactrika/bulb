@@ -35,7 +35,7 @@ def play(env, num_episodes, debug, viz):
                 rng = env.action_space.high - env.action_space.low
                 act = act*rng + env.action_space.low
             next_obs, rwd, done, info = env.step(act)
-            if viz: time.sleep(0.05)
+            if viz: time.sleep(0.02)
             if debug and step%(env.max_episode_steps//10)==0:
                 env.render_obs(debug_out_dir='/tmp/')
             if done: break

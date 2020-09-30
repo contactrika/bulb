@@ -1,4 +1,4 @@
-newmtl table_green
+newmtl table_purple
   Ns 10.0000
   Ni 1.5000
   d 1.0000
@@ -9,8 +9,8 @@ newmtl table_green
   Kd 0.5880 0.5880 0.5880
   Ks 0.0000 0.0000 0.0000
   Ke 0.0000 0.0000 0.0000
-  map_Ka table_green.tga
-  map_Kd table_green.png
+  map_Ka table_purple.tga
+  map_Kd table_purple.png
   
   
 

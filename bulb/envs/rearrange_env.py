@@ -32,7 +32,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
         'OneGeom':[['cylinder.urdf'], ['cube.urdf'], ['cylinder.urdf'],
                    ['cube.urdf'], ['sphere1.urdf'], ['cube.urdf']]
     }
-    TABLE_TEXTURES = ['_birch','_gray','_orange','_blue','_green','_birch']
+    TABLE_TEXTURES = ['_birch','_gray','_orange','_blue','_purple','_birch']
     TABLE_TEXTURES_RGB = np.array(
         [[220,200,170],[165,165,165], [165,75,40], [82,60,124],
          [90,190,180], [220,200,170]], dtype=float)/255.0
@@ -77,9 +77,8 @@ class RearrangeEnv(gym.Env, AuxEnv):
         self._version = version
         self._variant = variant
         self._rnd_init_pos = rnd_init_pos
-        self._num_init_rnd_act = 10 if rnd_init_pos else 0
-        self._max_episode_steps = 50
-        self._num_action_repeats = 4 # apply same torque action k num sim steps
+        self._num_init_rnd_nsteps = 10 if rnd_init_pos else 0
+        self._max_episode_steps = 200
         self._obs_resolution = obs_resolution
         self._obs_ptcloud = obs_ptcloud
         self._debug = debug
@@ -170,7 +169,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
             self.robot.reset_objects(
                 self._object_ids, self._init_object_poses, self._init_object_quats)
         # Make initial random actions, then return the starting state.
-        for t in range(self._num_init_rnd_act):
+        for t in range(self._num_init_rnd_nsteps):
             rnd01 = np.random.rand(self._max_torque.shape[0])
             torque = (rnd01-0.5)*self._max_torque
             self.robot.apply_joint_torque(torque)
@@ -183,9 +182,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
         torque = np.clip((torque-0.5) * 2 * self._max_torque,
                          -self._max_torque, self._max_torque)
         # Apply torque action to joints
-        for sub_step in range(self._num_action_repeats):  # repeat for faster sim
-            self.robot.apply_joint_torque(torque)  # advances sim inside
-            if not self.in_workspace(): break
+        self.robot.apply_joint_torque(torque)  # advances sim inside
         next_obs = self.compute_obs()
         ee_ok = self.in_workspace()
         # Update internal counters.
