@@ -58,7 +58,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
     SIM_PARAM_OBJ_MINS = np.array(
         [0, 0, 0,  0.01, 0.01, 0.01,  0,  0.01,  0.000,  0.000, 0.000, 0.000])
     SIM_PARAM_OBJ_MAXS = np.array(
-        [1, 1, 1,  0.15, 0.15, 0.15,  2,  1.00,  1.000,  1.000, 0.010, 0.010])
+        [1, 1, 1,  0.15, 0.15, 0.15,  3,  1.00,  1.000,  1.000, 0.010, 0.010])
     GEOM_FROM_SHAPE = [pybullet.GEOM_SPHERE, pybullet.GEOM_CYLINDER,
                        pybullet.GEOM_BOX, pybullet.GEOM_MESH]
     NAME_FROM_SHAPE = ['geomsphere', 'geomcylinder', 'geombox', 'mesh']
