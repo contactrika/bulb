@@ -26,7 +26,7 @@ def get_logger2_args():
                         help='Logging interval')
     parser.add_argument('--viz_interval', type=int, default=1,
                         help='Visualization interval')
-    args = parser.parse_args()
+    _, args = parser.parse_known_args()
     return args, parser
 
 
