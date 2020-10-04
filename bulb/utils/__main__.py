@@ -7,7 +7,7 @@ from .torch_init_and_log import (
 
 
 if __name__ == "__main__":
-    args = get_logger2_args()
+    args, _ = get_logger2_args()
     args.device = init_gpus_and_randomness(args.seed, args.gpu)
     logger = Logger2('/tmp/tmp', use_tensorboardX=True)
     logger.log_tb_object(args, 'args')

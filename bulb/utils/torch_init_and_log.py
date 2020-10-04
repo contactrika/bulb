@@ -27,7 +27,7 @@ def get_logger2_args():
     parser.add_argument('--viz_interval', type=int, default=1,
                         help='Visualization interval')
     args = parser.parse_args()
-    return args
+    return args, parser
 
 
 def init_gpus_and_randomness(seed, gpu):
