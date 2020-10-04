@@ -172,7 +172,7 @@ class Logger2:
         self._tb_writer = None
         if use_tensorboardX:
             self._tb_writer = tensorboardX.SummaryWriter(save_path)
-        print('Logger2', self._log_file)
+        print('Logger2', log_fnm)
 
     def __del__(self):
         self._log_file.close()
@@ -252,9 +252,3 @@ class Logger2:
             video_combo_imgs.extend(combine(
                 img_dict_for_video, hist_len+pred_len, data_h, data_w))
         add_video(pfx+'_true_vs_pred', video_combo_imgs, epoch, self._tb_writer)
-
-
-if __name__ == "__main__":
-    args = get_logger2_args()
-    logger = Logger2('/tmp/tmp', use_tensorboardX=True)
-    logger.log_tb_object(args, 'args')
