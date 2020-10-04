@@ -6,7 +6,6 @@ python -m bulb.env_demo --env_name=ReacherRearrangeGeomIM64-v0
 """
 
 import argparse
-import logging
 import sys
 import time
 
@@ -44,10 +43,6 @@ def play(env, num_episodes, debug, viz):
 
 
 def get_args():
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(message)s",
-        handlers=[logging.StreamHandler(sys.stdout)])
-
     parser = argparse.ArgumentParser(description="EnvDemo")
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--env_name', type=str,
