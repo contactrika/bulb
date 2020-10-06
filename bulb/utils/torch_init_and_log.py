@@ -103,18 +103,20 @@ def compose_img(all_imgs, all_txts, nviz, data_h, data_w):
 
 def combine(imgs_dict, num_steps, w, h):
     # Combine images in imgs_dict for each step side-by-side.
-    from PIL import Image
-    combo_imgs = []
+    combo_imgs = []; empty_im = Image.new('RGBA', (w, h))
     for st in range(num_steps):
         combo_img = Image.new('RGBA', (w*len(imgs_dict.keys()), h))
         x_offset = 0
         for key in imgs_dict.keys():
-            im = imgs_dict[key][st]
-            if im.dtype != np.uint8: im = (im*255).astype(np.uint8)
-            if im.shape[0]==3: im = im.transpose(1,2,0)  # guess chnl is 0th dim
-            imim = Image.fromarray(im)
-            d = ImageDraw.Draw(imim)  # for color will use range
-            d.text((5, 2), key, fill=(1, 1, 0))  # 0-1 not 255
+            if st<len(imgs_dict[key]):
+                im = imgs_dict[key][st]
+                if im.dtype != np.uint8: im = (im*255).astype(np.uint8)
+                if im.shape[0]==3: im = im.transpose(1,2,0)  # chnl was 0th dim
+                imim = Image.fromarray(im)
+                d = ImageDraw.Draw(imim)  # for color will use range
+                d.text((5, 2), key, fill=(1, 1, 0))  # 0-1 not 255
+            else:
+                imim = empty_im
             combo_img.paste(imim, box=(x_offset,0))
             x_offset += w
         combo_imgs.append(np.array(combo_img))
