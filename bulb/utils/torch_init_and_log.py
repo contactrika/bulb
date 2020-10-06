@@ -183,7 +183,11 @@ class Logger2:
 
     @property
     def save_path(self):
-        return self._checkpt_path
+        return self._save_path
+
+    @property
+    def tb_writer(self):
+        return self._tb_writer
 
     def log(self, data_lst):
         # Log to stdout and to log_file

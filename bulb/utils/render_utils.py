@@ -12,7 +12,7 @@ from ..utils.ptcloud_utils import *
 
 def rgba_to_rgb_torch(rgba_px):
     rgb = rgba_px[:,:,0:3].astype(float)/255.  # uint8 RGBA -> float32 RGB
-    rgb = rgb.transpose((2,0,1))               # H x W x C(RGB)
+    rgb = rgb.transpose((2,0,1))               # H x W x C(RGB) -> C x H x W
     return rgb
 
 
