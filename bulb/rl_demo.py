@@ -1,6 +1,7 @@
 """
 A simple example of training with model-free RL from stable baselines.
 
+pip install stable-baselines3
 python -m bulb.rl_demo --env_name=AntBulletEnvLD-v0 --viz
 """
 
