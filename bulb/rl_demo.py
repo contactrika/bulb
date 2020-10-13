@@ -2,7 +2,7 @@
 A simple example of training with model-free RL from stable baselines.
 
 pip install stable-baselines3
-python -m bulb.rl_demo --env_name=AntBulletEnvLD-v0 --viz
+python -m bulb.rl_demo --env_name=InvertedPendulumBulletEnvLD-v0 --viz
 """
 
 import argparse
@@ -26,7 +26,8 @@ def get_args():
     parser = argparse.ArgumentParser(description="EnvDemo")
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--env_name', type=str,
-                        default='AntBulletEnvLD-v0', help='Env name')
+                        default='InvertedPendulumBulletEnvLD-v0',
+                        help='Env name')
     parser.add_argument('--num_envs', type=int, default=4,
                         help='Number of simulation envs')
     parser.add_argument('--num_epochs', type=int, default=1000,
