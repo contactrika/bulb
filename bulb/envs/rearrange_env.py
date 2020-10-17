@@ -104,7 +104,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
         # Load objects.
         res = self.load_objects(self.robot.sim, data_dir)
         self._object_names, self._init_object_poses, self._init_object_quats, \
-            self._object_ids, self._object_props = res
+            self._object_ids, self._object_props, self._max_object_z = res
         # Initialize data needed for point cloud observations.
         self._cam_object_ids = None
         if self._obs_ptcloud:
@@ -436,7 +436,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
         # Now do robot-related checks.
         ee_pos = self.robot.get_ee_pos()
         # Check whether ee is too high above the objects.
-        if hasattr(self, 'max_object_z') and ee_pos[2] > 0.2+self.max_object_z:
+        if hasattr(self, '_max_object_z') and ee_pos[2] > 0.2+self._max_object_z:
             if self._debug:
                 print('step', self._stepnum, 'ee_pos too high', ee_pos)
             return False
@@ -520,4 +520,5 @@ class RearrangeEnv(gym.Env, AuxEnv):
                       'props', props)
             object_ids.append(obj_id)
             object_props.append(np.array(props))
-        return object_names, object_poses, object_quats, object_ids, object_props
+        return object_names, object_poses, object_quats, object_ids, \
+               object_props, max_object_z

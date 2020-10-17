@@ -17,7 +17,7 @@ from tensorboardX.proto.summary_pb2 import Summary
 
 
 def get_logger2_args():
-    parser = argparse.ArgumentParser(description="Logger2Args", add_help=False)
+    parser = argparse.ArgumentParser(description='Logger2', add_help=False)
     parser.add_argument('--save_path_prefix', type=str,
                         default='/tmp/tmp_learn', help='Output directory')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
