@@ -5,7 +5,7 @@ import os
 import numpy as np
 import pybullet
 
-from gym_bullet_extensions.bullet_manipulator import BulletManipulator
+from ..utils.bullet_manipulator import BulletManipulator
 
 from .reacher_sim import ReacherBulletSimulation
 from .rearrange_env import RearrangeEnv
