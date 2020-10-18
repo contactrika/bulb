@@ -4,19 +4,14 @@ A simple demo for env (with random actions).
 python -m bulb.env_demo --env_name=AntBulletEnvLD-v0 --viz --debug
 python -m bulb.env_demo --env_name=ReacherRearrangeGeomIM64-v0
 """
-
 import argparse
-import sys
 import time
 
+import gym
 import numpy as np
 np.set_printoptions(precision=4, linewidth=150, threshold=np.inf, suppress=True)
 
-import gym
-import pybullet
-
-import bulb  # to register envs
-from .envs.rearrange_utils import test_override
+from bulb.utils import register_envs  # auto register
 
 
 def play(env, num_episodes, debug, viz):

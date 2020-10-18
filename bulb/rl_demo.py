@@ -4,23 +4,19 @@ A simple example of training with model-free RL from stable baselines.
 pip install torch stable-baselines3 tensorboardX
 python -m bulb.rl_demo --env_name=InvertedPendulumBulletEnvLD-v0 --visualize
 """
-
 import argparse
-import sys
 import time
 
 import numpy as np
 np.set_printoptions(precision=4, linewidth=150, threshold=np.inf, suppress=True)
 
-import gym
-import pybullet
 
 from stable_baselines3.common.cmd_util import make_vec_env
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3 import PPO
 
-import bulb  # to register envs
-from .utils.torch_init_and_log import (
+from bulb.utils import register_envs  # auto register
+from bulb.utils.torch_init_and_log import (
     get_logger2_args, init_gpus_and_randomness, Logger2)
 
 
