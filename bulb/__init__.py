@@ -2,7 +2,7 @@ from gym.envs.registration import register as gym_register
 
 __all__ = ['envs', 'utils']
 
-RESOLUTIONS = [None, 64, 128, 256, 512, 1024, 2048]
+OBS_RESOLUTIONS = [None, 64, 128, 256, 512, 1024, 2048]
 
 
 def register_all():
@@ -27,7 +27,7 @@ def register_all():
             for env_v in [0,1]:
                 if env_v==0 and base_env_name=='CartPole': continue  # v1 only
                 if env_v==1 and base_env_name not in v1_envs: continue
-                for resolution in RESOLUTIONS:
+                for resolution in OBS_RESOLUTIONS:
                     for obs_ptcloud in [False, True]:
                         if obs_ptcloud and resolution is None: continue
                         for random_colors in [False, True]:
@@ -54,7 +54,7 @@ def register_all():
     num_versions = 6*2  # 6 versions and their black-background variants
     for robot in ['Reacher', 'Franka']:
         for variant in ['Ycb', 'OneYcb', 'Geom', 'OneGeom']:
-            for resolution in RESOLUTIONS:
+            for resolution in OBS_RESOLUTIONS:
                 for obs_ptcloud in [False, True]:
                     if obs_ptcloud and resolution is None: continue
                     for version in range(num_versions):
@@ -80,7 +80,7 @@ def register_all():
     scale_dict = {'': 2.5, 'Md': 1.5, 'Sm': 1.0}
     for variant in ['Ycb', 'Geom']:
         for scale_str, scale in scale_dict.items():
-            for resolution in RESOLUTIONS:
+            for resolution in OBS_RESOLUTIONS:
                 for obs_ptcloud in [False, True]:
                     if obs_ptcloud and resolution is None: continue
                     for version in range(6):
