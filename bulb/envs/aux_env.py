@@ -5,6 +5,7 @@ that can be used for further analysis.
 """
 
 from abc import ABC, abstractmethod
+from typing import Union
 
 
 class AuxEnv(ABC):
@@ -12,7 +13,7 @@ class AuxEnv(ABC):
     @abstractmethod
     def __init__(self,
                  max_episode_steps: int,
-                 obs_resolution: bool = None,
+                 obs_resolution: Union[int, None] = None,
                  obs_ptcloud: bool = None,
                  debug: bool = False,
                  visualize: bool = False):
