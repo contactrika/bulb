@@ -93,15 +93,15 @@ class BulletManipulator:
             self.sim = bclient.BulletClient(connection_mode=pybullet.DIRECT)
         self._aux_sim = bclient.BulletClient(
             connection_mode=pybullet.DIRECT)
-        robot_description_folder = os.path.split(__file__)[0]
-        data_path = os.path.join(robot_description_folder, 'data')
+        data_path = os.path.join(
+            os.path.split(__file__)[0], '..', 'envs', 'data')
         # Load ground.
         if default_ground:
             self.sim.setAdditionalSearchPath(pybullet_data.getDataPath())
             self._aux_sim.setAdditionalSearchPath(pybullet_data.getDataPath())
             ground_file = "plane.urdf"
         else:
-            ground_file = os.path.join(data_path, "plane_blue.urdf")
+            ground_file = os.path.join(data_path, 'plane_blue.urdf')
         self.plane_id = self.sim.loadURDF(ground_file,[0,0,0])
         self._aux_sim.loadURDF(ground_file, [0,0,0])
         # Note: changing ground color doesn't work even for plane_transparent.urdf

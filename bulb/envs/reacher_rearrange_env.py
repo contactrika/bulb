@@ -6,20 +6,18 @@ import numpy as np
 import pybullet
 
 from ..utils.bullet_manipulator import BulletManipulator
-
-from .reacher_sim import ReacherBulletSimulation
+from ..utils.bullet_reacher import BulletReacher
 from .rearrange_env import RearrangeEnv
 
 
 class ReacherRearrangeEnv(RearrangeEnv):
     def __init__(self, version, variant='Ycb',
-                 obs_resolution=64, obs_ptcloud=False,
                  rnd_init_pos=False, control_mode='torque',
+                 obs_resolution=64, obs_ptcloud=False,
                  debug=False, visualize=False):
-        # Note: RearrangeEnv expects that we create self.robot.
         if obs_ptcloud:
             data_folder = os.path.join(os.path.split(__file__)[0], 'data')
-            self.robot = BulletManipulator(
+            robot = BulletManipulator(
                 os.path.join(data_folder, 'reacher.urdf'),
                 control_mode=control_mode,
                 ee_joint_name='reacher_joint4', ee_link_name='reacher_link4',
@@ -31,17 +29,15 @@ class ReacherRearrangeEnv(RearrangeEnv):
                 pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_GUI, 1)
                 pybullet.configureDebugVisualizer(
                     pybullet.COV_ENABLE_RGB_BUFFER_PREVIEW, 1)
-                self.robot.sim.resetDebugVisualizerCamera(
-                    cameraDistance=0.44, cameraYaw=self.robot.cam_yaw,
+                robot.sim.resetDebugVisualizerCamera(
+                    cameraDistance=0.44, cameraYaw=robot.cam_yaw,
                     cameraPitch=-65, cameraTargetPosition=(0.05, 0, 0))
         else:
-            self.robot = ReacherBulletSimulation(
-                robot_desc_file='reacher.xml',
-                gui=visualize, camera_distance=0.40)
+            robot = BulletReacher(robot_desc_file='reacher.xml',
+                                  gui=visualize, camera_distance=0.40)
         super(ReacherRearrangeEnv, self).__init__(
-            version=version, variant=variant,
-            obs_resolution=obs_resolution, obs_ptcloud=obs_ptcloud,
-            rnd_init_pos=rnd_init_pos, debug=debug)
+            version, variant, robot, rnd_init_pos,
+            obs_resolution, obs_ptcloud, debug)
 
     def step(self, action):
         if self._obs_ptcloud:

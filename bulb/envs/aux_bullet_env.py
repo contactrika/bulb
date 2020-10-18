@@ -23,14 +23,8 @@ class AuxBulletEnv(gym.Env, AuxEnv):
     def __init__(self, base_env_name, env_v=0,
                  obs_resolution=64, obs_ptcloud=False, random_colors=False,
                  debug=False, visualize=False):
-        self._obs_resolution = obs_resolution
         self._base_env_name = base_env_name
-        self._obs_ptcloud = obs_ptcloud
         self._random_colors = random_colors
-        self._visualize = visualize
-        self._debug = debug
-        self._stepnum = 0
-        self._episode_rwd = 0
         self._mobile = False
         if base_env_name.startswith(('Hopper', 'Walker2D', 'Ant', 'Humanoid',
                                      'HalfCheetah', 'InvertedPendulumSwingup')):
@@ -54,9 +48,12 @@ class AuxBulletEnv(gym.Env, AuxEnv):
             self._env.unwrapped._cam_pitch = -41
         else:
             self._env = gym.make(base_env_name+'BulletEnv-v'+str(env_v))
+            max_episode_steps = self._env._max_episode_steps
             if 'CartPole' in base_env_name:
                 self._env.render(mode='rgb_array')  # init cam dist vars
             if visualize: self._env.render(mode='human')  # turn on debug viz
+        super(AuxBulletEnv, self).__init__(
+            max_episode_steps, obs_resolution, obs_ptcloud, debug, visualize)
         # Zoom in camera.
         assert(hasattr(self._env.unwrapped, '_cam_dist'))
         if base_env_name.startswith('Reacher'):
@@ -85,7 +82,7 @@ class AuxBulletEnv(gym.Env, AuxEnv):
         self._view_mat, self._proj_mat, base_pos = self.compute_cam_vals()
         # Specify camera objects for point cloud processing.
         self._cam_object_ids = None
-        if self._obs_ptcloud:
+        if self.obs_ptcloud:
             assert(self._base_env_name == 'CartPole')
             self._cam_object_ids = [self._env.unwrapped.cartpole]
             # Note: PyBullet envs with XML(MJCF)-based robots seem to have
@@ -101,7 +98,7 @@ class AuxBulletEnv(gym.Env, AuxEnv):
             {k: v for v, k in enumerate(self.low_dim_state_names)}
         if obs_resolution is None:
             self.observation_space = self._env.observation_space  # low dim
-        elif self._obs_ptcloud:
+        elif self.obs_ptcloud:
             state_sz = obs_resolution*3  # 3D points in point cloud
             self.observation_space = gym.spaces.Box(
                 -1.0*AuxBulletEnv.PTCLOUD_BOX_SIZE*np.ones(state_sz),
@@ -117,7 +114,7 @@ class AuxBulletEnv(gym.Env, AuxEnv):
             self._sim.resetDebugVisualizerCamera(
                 self._env.unwrapped._cam_dist, self._env.unwrapped._cam_yaw,
                 self._env.unwrapped._cam_pitch, base_pos)
-            if self._obs_resolution is not None:
+            if self.obs_resolution is not None:
                 pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_GUI, 1)
                 pybullet.configureDebugVisualizer(
                     pybullet.COV_ENABLE_RGB_BUFFER_PREVIEW,1)
@@ -125,18 +122,10 @@ class AuxBulletEnv(gym.Env, AuxEnv):
                     pybullet.COV_ENABLE_DEPTH_BUFFER_PREVIEW,1)
                 pybullet.configureDebugVisualizer(
                     pybullet.COV_ENABLE_SEGMENTATION_MARK_PREVIEW,1)
-        if self._debug:
+        if self.debug:
             print('Created Aux', base_env_name, 'with observation_space',
                   self.observation_space, 'action_space', self.action_space,
                   'max_episode_steps', self.max_episode_steps)
-
-    @property
-    def max_episode_steps(self):
-        return self._env._max_episode_steps
-
-    @property
-    def obs_resolution(self):
-        return self._obs_resolution
 
     @property
     def low_dim_state_space(self):
@@ -153,11 +142,10 @@ class AuxBulletEnv(gym.Env, AuxEnv):
         self._env.unwrapped.close()
 
     def reset(self):
-        self._stepnum = 0
-        self._episode_rwd = 0
+        self.reset_aggregators()
         if self._random_colors: self.reset_colors()
         state = self._env.reset()
-        if self._obs_resolution is None:  # low dim state
+        if self.obs_resolution is None:  # low dim state
             obs = np.clip(state, self.observation_space.low,
                           self.observation_space.high)
         else:  # pixel or ptcloud state
@@ -165,7 +153,7 @@ class AuxBulletEnv(gym.Env, AuxEnv):
         # For mobile envs: could look at the robot from different angles.
         #if self._mobile:
         #    self._env.unwrapped._cam_yaw = (np.random.rand()-0.5)*360
-        if self._visualize and self._mobile:
+        if self.visualize and self._mobile:
             self._sim.resetDebugVisualizerCamera(
                 self._env.unwrapped._cam_dist, self._env.unwrapped._cam_yaw,
                 self._env.unwrapped._cam_pitch, self.get_base_pos())
@@ -173,32 +161,29 @@ class AuxBulletEnv(gym.Env, AuxEnv):
 
     def step(self, action):
         state, rwd, done, info = self._env.step(action)  # apply action
-        if self._obs_resolution is None:
+        if self.obs_resolution is None:
             obs = np.clip(state, self.observation_space.low,
                           self.observation_space.high)
         else:
             obs = self.render_obs()
-        # Update internal counters.
-        self._stepnum += 1
-        # Report reward starts and other info.
-        self._episode_rwd += rwd
-        if self._debug:  # print low-dim state
-            msg = f'pid {os.getpid():d} step {self._stepnum:d} done {done:d} act'
+        done, more_info = self.update_aggregators(rwd, done)
+        info.update(more_info)
+        if self.debug:  # print low-dim state
+            msg = f'pid {os.getpid():d} step {self.stepnum:d} act'
             msg += np.array2string(action, precision=2,
                                    formatter={'float_kind':'{:0.2f}'.format}, )
             for i in range(len(self.low_dim_state_names)):
                 msg += f' {self.low_dim_state_names[i]:s} {state[i]:0.4f}'
             print(msg)
-        #if self._debug:
+        #if self.debug:
             # sanity check: aux should be same as low-dim state reported by env
             # except for envs that modify state after applying action (Hopper).
-            #low_dim_state = self.calc_low_dim_state()
+            #low_dim_state = self.compute_low_dim_state()
             #if np.abs(state - low_dim_state).sum()>1e-6:
             #    print('        state', state)
             #    print('low_dim_state', low_dim_state)
             #    assert(False)
-        if done: info['episode'] = {'r': self._episode_rwd, 'l': self._stepnum}
-        if self._visualize and self._mobile:
+        if self.visualize and self._mobile:
             self._sim.resetDebugVisualizerCamera(
             self._env.unwrapped._cam_dist, self._env.unwrapped._cam_yaw,
             self._env.unwrapped._cam_pitch, self.get_base_pos())
@@ -208,14 +193,14 @@ class AuxBulletEnv(gym.Env, AuxEnv):
         pass  #  done automatically with PyBullet visualization
 
     def render_obs(self, override_resolution=None, debug_out_dir=None):
-        if self._mobile and not self._obs_ptcloud:
+        if self._mobile and not self.obs_ptcloud:
             self._view_mat, self._proj_mat, _ = self.compute_cam_vals()
         obs = render_utils.render_obs(
-            self._sim, self._stepnum,
-            self._obs_resolution, override_resolution,
+            self._sim, self.stepnum,
+            self.obs_resolution, override_resolution,
             self._env.unwrapped._cam_dist, self.get_base_pos(),
             self._env.unwrapped._cam_pitch, self._env.unwrapped._cam_yaw,
-            self._obs_ptcloud, self._cam_object_ids, self._base_env_name,
+            self.obs_ptcloud, self._cam_object_ids, self._base_env_name,
             AuxBulletEnv.PTCLOUD_BOX_SIZE,
             debug_out_dir, self._view_mat, self._proj_mat)
         return obs
@@ -233,7 +218,7 @@ class AuxBulletEnv(gym.Env, AuxEnv):
         # the reward. It still might make sense to divide by total number of
         # steps, but the resulting range is not that simple to compute.
         #
-        return rwd/self._env._max_episode_steps
+        return rwd / self.max_episode_steps
 
     def compute_low_dim_state_names(self):
         if 'CartPole' in self._base_env_name:

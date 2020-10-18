@@ -12,36 +12,37 @@ import pybullet_data
 import pybullet_utils.bullet_client as bc
 
 
-class ReacherBulletSimulation:
-    # TODO: check link names are correct (can be tricky with mujoco xml).
+class BulletReacher:
+    # The following default fields are based on the structure of the default
+    # reacher.xml from pybullet_data (same as the standard MJCF reacher).
     LINK_NAMES = ['base_link', 'shoulder_link', '', 'elbow_link',
                   'hand_link', 'hand_center',
                   'fing_l', 'fing_r', 'tip_l', 'tip_r']
-    EE_LINK_ID = 4  # TODO: double check this
+    EE_LINK_ID = 4
     CONTROLLED_JOINTS = [0, 2]
     TORQUE_LIMITS = np.asarray([3.0, 3.0])
     JOINT_LIMITS = np.array([31/32,26/32])*np.pi
 
     def __init__(self, robot_desc_file, gui=False, camera_distance=1.0):
-        self.ee_idx = ReacherBulletSimulation.EE_LINK_ID
-        self.controlled_joints = ReacherBulletSimulation.CONTROLLED_JOINTS
-        self.torque_limits = ReacherBulletSimulation.TORQUE_LIMITS
+        self.ee_idx = BulletReacher.EE_LINK_ID
+        self.controlled_joints = BulletReacher.CONTROLLED_JOINTS
+        self.torque_limits = BulletReacher.TORQUE_LIMITS
         self.dof = len(self.controlled_joints)
         # Set up bullet client and load plane
         self.sim = bc.BulletClient(
             connection_mode=pybullet.GUI if gui else pybullet.DIRECT)
         self.sim.setAdditionalSearchPath(pybullet_data.getDataPath())
-        self.plane_id = pybullet.loadURDF("plane.urdf",[0,0,0])
+        self.plane_id = pybullet.loadURDF('plane.urdf',[0,0,0])
         self.sim.changeVisualShape(self.plane_id, -1, rgbaColor=(0,0,0,1))
         # Load robot.
-        robot_description_folder = os.path.split(__file__)[0]
-        data_path = os.path.join(robot_description_folder, 'data')
-        robot_file_path = os.path.join(data_path, robot_desc_file)
-        print('robot_file_path', robot_file_path)
-        if robot_file_path.endswith('.urdf'):
-            robot_id = self.sim.loadURDF(robot_file_path, [0,0,0])
+        data_path = os.path.join(
+            os.path.split(__file__)[0], '..', 'envs', 'data')
+        if not os.path.isabs(robot_desc_file):
+            robot_desc_file = os.path.join(data_path, robot_desc_file)
+        if robot_desc_file.endswith('.urdf'):
+            robot_id = self.sim.loadURDF(robot_desc_file, [0,0,0])
         else:
-            world_id, robot_id = self.sim.loadMJCF(robot_file_path)
+            world_id, robot_id = self.sim.loadMJCF(robot_desc_file)
             self.sim.changeVisualShape(world_id, -1, rgbaColor=(1,1,1,1))
         self.robot_id = robot_id
         for link_id in [1,3,4,5]:
@@ -125,14 +126,14 @@ class ReacherBulletSimulation:
         # Keep qpos in [-(pi-2eps),pi-2eps]
         qpos = self.get_qpos(); qvel = self.get_qvel()
         for j in range(len(qpos)):
-            lim = ReacherBulletSimulation.JOINT_LIMITS[j]
+            lim = BulletReacher.JOINT_LIMITS[j]
             if np.abs(qpos[j]) > lim:
                 jpos = lim*np.sign(qpos[j])
                 self.sim.resetJointState(
                     bodyUniqueId=self.robot_id,
                     jointIndex=self.controlled_joints[j],
                     targetValue=jpos, targetVelocity=-qvel[j])
-        if (np.abs(self.get_qpos())>np.pi).any():
+        if (np.abs(self.get_qpos()) > np.pi).any():
             print('Invalid robot qpos', qpos)
             assert(False)  # invalid robot qpos
 
@@ -177,7 +178,7 @@ class ReacherBulletSimulation:
             if other_bullet_id not in object_ids: continue
             obj_num = object_ids.index(other_bullet_id)
             if debug:
-                print(ReacherBulletSimulation.LINK_NAMES[link_bullet_id],
+                print(BulletReacher.LINK_NAMES[link_bullet_id],
                       'of the robot collided with object number', obj_num)
                 print('contact pt', pt)
             ok = False

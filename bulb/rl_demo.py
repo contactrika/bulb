@@ -2,7 +2,7 @@
 A simple example of training with model-free RL from stable baselines.
 
 pip install torch stable-baselines3 tensorboardX
-python -m bulb.rl_demo --env_name=InvertedPendulumBulletEnvLD-v0 --viz
+python -m bulb.rl_demo --env_name=InvertedPendulumBulletEnvLD-v0 --visualize
 """
 
 import argparse

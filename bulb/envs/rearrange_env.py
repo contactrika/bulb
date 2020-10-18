@@ -72,20 +72,17 @@ class RearrangeEnv(gym.Env, AuxEnv):
     # to not report dims or inertia diagonal correctly; so use hard-coded init.
     CYLINDER_DEFAULT_DIMS = [0.06, 0.06, 0.12/2]
 
-    def __init__(self, version, variant, obs_resolution, obs_ptcloud,
-                 rnd_init_pos, debug=False):
+    def __init__(self, version, variant, robot, rnd_init_pos,
+                 obs_resolution, obs_ptcloud, debug=False):
+        max_episode_steps = 200
+        super(RearrangeEnv, self).__init__(
+            max_episode_steps, obs_resolution, obs_ptcloud, debug)
         self._version = version
         self._variant = variant
+        self._robot = robot
         self._rnd_init_pos = rnd_init_pos
         self._num_init_rnd_nsteps = 10 if rnd_init_pos else 0
-        self._max_episode_steps = 200
-        self._obs_resolution = obs_resolution
-        self._obs_ptcloud = obs_ptcloud
-        self._debug = debug
-        self._stepnum = 0
-        self._episode_rwd = 0.0
-        assert(hasattr(self, 'robot'))  # self.robot should be set
-        self._max_torque = self.robot.get_maxforce()
+        self._max_torque = self._robot.get_maxforce()
         self._ndof = self._max_torque.shape[0]
         if self._ndof == 9:  # 7DoF manipulator with 2 last joints being fingers
             self._ndof = 7
@@ -94,25 +91,25 @@ class RearrangeEnv(gym.Env, AuxEnv):
         # Load borders.
         brpfx = os.path.join(data_dir, 'table', 'borders')
         borders_file = brpfx+RearrangeEnv.TABLE_TEXTURES[self._version]+'.urdf'
-        self._border_id = self.robot.sim.loadURDF(
+        self._border_id = self._robot.sim.loadURDF(
             borders_file, useFixedBase=True, globalScaling=0.8)
         if RearrangeEnv.TABLE_TEXTURES[self._version]== '':
-            self.robot.sim.changeVisualShape(
+            self._robot.sim.changeVisualShape(
                 self._border_id, 0, rgbaColor=(0,0,0,1))  # black background
-        self._blank_texture_id = self.robot.sim.loadTexture(
+        self._blank_texture_id = self._robot.sim.loadTexture(
             os.path.join(data_dir, 'table', 'table.png'))
         # Load objects.
-        res = self.load_objects(self.robot.sim, data_dir)
+        res = self.load_objects(self._robot.sim, data_dir)
         self._object_names, self._init_object_poses, self._init_object_quats, \
             self._object_ids, self._object_props, self._max_object_z = res
         # Initialize data needed for point cloud observations.
         self._cam_object_ids = None
         if self._obs_ptcloud:
-            if hasattr(self.robot, 'robot_id'):
-                self._cam_object_ids = [self.robot.robot_id]
+            if hasattr(self._robot, 'robot_id'):
+                self._cam_object_ids = [self._robot.robot_id]
             else:
-                assert(self.robot, 'info')
-                self._cam_object_ids = [self.robot.info.robot_id]
+                assert(self._robot, 'info')
+                self._cam_object_ids = [self._robot.info.robot_id]
             self._cam_object_ids.extend(self._object_ids)
         # Define obs and action space shapes.
         # Note: in this env aux state in this envs is normalized to [-1,1]
@@ -120,30 +117,25 @@ class RearrangeEnv(gym.Env, AuxEnv):
         self._ld_names = self.compute_low_dim_state_names()
         self._ld_space = gym.spaces.Box(
                 -1.0, 1.0, shape=[len(self._ld_names)], dtype=np.float32)
-        if self._obs_resolution is None:
+        if self.obs_resolution is None:
             self.observation_space = self._ld_space
         elif self._obs_ptcloud:
-            state_sz = self._obs_resolution * 3  # 3D points in point cloud
+            state_sz = self.obs_resolution * 3  # 3D points in point cloud
             self.observation_space = gym.spaces.Box(
                 -1.0*RearrangeEnv.PTCLOUD_BOX_SIZE*np.ones(state_sz),
                 RearrangeEnv.PTCLOUD_BOX_SIZE*np.ones(state_sz))
         else:  # RGB images
             self.observation_space = gym.spaces.Box(  # channels: 3 color
-                0.0, 1.0, shape=[3, self._obs_resolution, self._obs_resolution],
+                0.0, 1.0, shape=[3, self.obs_resolution, self.obs_resolution],
                 dtype=np.float32)
         self.action_space = gym.spaces.Box(
             0.0, 1.0, shape=[self._ndof], dtype=np.float32)
-        super(RearrangeEnv, self).__init__()
         if debug:
             print('Created RearrangeEnv with observation_space',
                   self.observation_space, 'action_space', self.action_space,
                   'action limits', self.action_space.low, self.action_space.high,
                   'low_dim_observation_space', self._ld_space,
                   'low_dim_state_names', self._ld_names)
-
-    @property
-    def max_episode_steps(self):
-        return self._max_episode_steps
 
     @property
     def low_dim_state_space(self):
@@ -153,26 +145,29 @@ class RearrangeEnv(gym.Env, AuxEnv):
     def low_dim_state_names(self):
         return self._ld_names
 
+    @property
+    def robot(self):
+        return self._robot
+
     def seed(self, seed):
         np.random.seed(seed)
 
     def close(self):
-        self.robot.disconnect()
+        self._robot.disconnect()
 
     def reset(self):
-        self._stepnum = 0
-        self._episode_rwd = 0.0
+        self.reset_aggregators()
         if self._rnd_init_pos:
             self.reset_to_random_pose()
         else:
-            self.robot.reset()
-            self.robot.reset_objects(
+            self._robot.reset()
+            self._robot.reset_objects(
                 self._object_ids, self._init_object_poses, self._init_object_quats)
         # Make initial random actions, then return the starting state.
         for t in range(self._num_init_rnd_nsteps):
             rnd01 = np.random.rand(self._max_torque.shape[0])
             torque = (rnd01-0.5)*self._max_torque
-            self.robot.apply_joint_torque(torque)
+            self._robot.apply_joint_torque(torque)
         return self.compute_obs()
 
     def step(self, action):
@@ -182,35 +177,25 @@ class RearrangeEnv(gym.Env, AuxEnv):
         torque = np.clip((torque-0.5) * 2 * self._max_torque,
                          -self._max_torque, self._max_torque)
         # Apply torque action to joints
-        self.robot.apply_joint_torque(torque)  # advances sim inside
+        self._robot.apply_joint_torque(torque)  # advances sim inside
         next_obs = self.compute_obs()
-        ee_ok = self.in_workspace()
-        # Update internal counters.
-        self._stepnum += 1
-        # Report reward starts and other info.
         rwd = self.compute_reward()
-        self._episode_rwd += rwd
-        info = {}
-        done = (self._stepnum == self._max_episode_steps) or not ee_ok
-        if self._debug and self._stepnum%10==0:
-            print('step', self._stepnum, 'action', action, 'torque', torque)
-            if self._obs_resolution is None: print('state', next_obs)
-        if done:
-            # Unused steps get a reward same as the last ok step
-            self._episode_rwd += rwd * (self._max_episode_steps - self._stepnum)
-            info['episode'] = {'r': float(self._episode_rwd), 'l': self._stepnum}
-            if self._debug: print('tot_rwd {:.4f}'.format(self._episode_rwd))
+        done = not self.in_workspace()
+        done, info = self.update_aggregators(rwd, done)
+        if self.debug and self.stepnum%10==0:
+            print('step', self.stepnum, 'action', action, 'torque', torque)
+            if self.obs_resolution is None: print('state', next_obs)
         return next_obs, rwd, done, info
 
     def override_state(self, ld_state):
         qpos, obj_props, obj_poses, obj_quats = \
             self.low_dim_to_sim_state(ld_state)
-        self.robot.reset_to_qpos(qpos)
+        self._robot.reset_to_qpos(qpos)
         self._object_props[:] = obj_props[:]
         for objid in range(len(self._object_ids)):
             # Do not override object properties, since we use mesh objects.
             #self.override_object_properties()
-            self.robot.sim.resetBasePositionAndOrientation(
+            self._robot.sim.resetBasePositionAndOrientation(
                 self._object_ids[objid], obj_poses[objid].tolist(),
                 obj_quats[objid].tolist())
 
@@ -219,16 +204,16 @@ class RearrangeEnv(gym.Env, AuxEnv):
 
     def render_obs(self, override_resolution=None, debug_out_dir=None):
         obs = render_utils.render_obs(
-            self.robot.sim, self._stepnum,
-            self._obs_resolution, override_resolution,
-            self.robot.cam_dist, self.robot.cam_target,
-            self.robot.cam_pitch, self.robot.cam_yaw,
+            self._robot.sim, self.stepnum,
+            self.obs_resolution, override_resolution,
+            self._robot.cam_dist, self._robot.cam_target,
+            self._robot.cam_pitch, self._robot.cam_yaw,
             self._obs_ptcloud, self._cam_object_ids, 'Rearrange',
             RearrangeEnv.PTCLOUD_BOX_SIZE, debug_out_dir)
         return obs
 
     def compute_obs(self):
-        if self._obs_resolution is None:
+        if self.obs_resolution is None:
             return self.compute_low_dim_state()
         else:
             return self.render_obs()
@@ -237,7 +222,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
         dists = []
         for i, obj_id in enumerate(self._object_ids):
             nm = self._object_names[i]
-            obj_pos, _ = self.robot.sim.getBasePositionAndOrientation(obj_id)
+            obj_pos, _ = self._robot.sim.getBasePositionAndOrientation(obj_id)
             tgt_id = 0 if nm.endswith(('_box', '_can')) else 1
             tgt_pos = RearrangeEnv.TARGETS_POS[tgt_id]
             dist = np.linalg.norm(np.array(obj_pos[:2]) - np.array(tgt_pos[:2]))
@@ -250,7 +235,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
         obj_props = np.copy(self._object_props)
         obj_poses = []; obj_quats = []
         for obj in self._object_ids:
-            obj_pos, obj_quat = self.robot.sim.getBasePositionAndOrientation(obj)
+            obj_pos, obj_quat = self._robot.sim.getBasePositionAndOrientation(obj)
             obj_poses.append(obj_pos)
             obj_quats.append(obj_quat)
         obj_poses = np.array(obj_poses)
@@ -269,7 +254,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
     def compute_low_dim_state_names(self):
         ld_names = []
         obj_props, obj_poses, obj_quats = self.compute_sim_state()
-        qpos = self.robot.get_qpos()
+        qpos = self._robot.get_qpos()
         for j in range(qpos.shape[0]):
             ld_names.append('j'+str(j)+'_sin')
             ld_names.append('j'+str(j)+'_cos')
@@ -300,12 +285,12 @@ class RearrangeEnv(gym.Env, AuxEnv):
             rnd_qpos = None
             while rnd_qpos is None:
                 rnd_qpos, end_ee_pos, rnd_ee_quat = self.rnd_qpos_fxn()
-                if self._debug:
+                if self.debug:
                     print('qpos_for_random_ee_pose', rnd_qpos, 'end_ee_pos',
                           end_ee_pos, 'rnd_ee_quat', rnd_ee_quat)
         else:  # random from [-pi,pi] for each joint (minus eps for stability)
             rnd_qpos = (np.random.rand(self._ndof) - 0.5) * 2 * (0.75 * np.pi)
-        self.robot.reset_to_qpos(rnd_qpos)
+        self._robot.reset_to_qpos(rnd_qpos)
         # TODO: update this when using random object shapes
         min_z = 0.03 if 'Ycb' in self._variant else 0.04
         xyrng = 0.15
@@ -316,14 +301,14 @@ class RearrangeEnv(gym.Env, AuxEnv):
             obj_pos = denormalize(obj_pos, mins, maxes)
             obj_quat = np.random.rand(4)
             obj_quat = obj_quat/np.linalg.norm(obj_quat)
-            self.robot.sim.resetBasePositionAndOrientation(
+            self._robot.sim.resetBasePositionAndOrientation(
                 self._object_ids[objid], obj_pos, obj_quat)
         for t in range(20):  # let the objects emerge from problematic poses
-            self.robot.sim.stepSimulation()
+            self._robot.sim.stepSimulation()
 
     def sim_to_low_dim_state(self, obj_props, obj_poses, obj_quats):
         # Add robot qpos.
-        qpos = self.robot.get_qpos()
+        qpos = self._robot.get_qpos()
         #assert((qpos>=-np.pi).all() and (qpos<=np.pi).all())
         qpos_all_sin = np.sin(qpos).reshape(-1,1)
         qpos_all_cos = np.cos(qpos).reshape(-1,1)
@@ -402,7 +387,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
             print(msg.format(mass, restitution, lat_fric, rol_fric, spin_fric))
         # No way to update collision shape, need to remove and re-insert.
         # https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=12034
-        self.robot.sim.removeBody(self._object_ids[objid])
+        self._robot.sim.removeBody(self._object_ids[objid])
         new_viz_shape_id = pybullet.createVisualShape(
             shapeType=viz_geom_type, rgbaColor=[rgb_r, rgb_g, rgb_b, 1.0],
             radius=radius_a, length=halfExtent*2,
@@ -419,7 +404,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
         self._object_ids[objid] = new_obj_id
         # TODO: Check whether pybullet changes inertial matrix based on
         #  mass and shape type, or whether we need to re-specify manually.
-        self.robot.sim.changeDynamics(
+        self._robot.sim.changeDynamics(
             self._object_ids[objid], -1, mass=mass, restitution=restitution,
             lateralFriction=lat_fric, rollingFriction=rol_fric,
             spinningFriction=spin_fric)
@@ -427,24 +412,24 @@ class RearrangeEnv(gym.Env, AuxEnv):
     def in_workspace(self):
         # First check whether all the objects are still in the workspace.
         for tmpi, obj in enumerate(self._object_ids):
-            obj_pos, obj_quat = self.robot.sim.getBasePositionAndOrientation(obj)
+            obj_pos, obj_quat = self._robot.sim.getBasePositionAndOrientation(obj)
             if ((np.array(obj_pos)<RearrangeEnv.OBJ_XYZ_MINS).any() or
                 (np.array(obj_pos)>RearrangeEnv.OBJ_XYZ_MAXS).any()):
-                if self._debug:
+                if self.debug:
                     print('Object', self._object_names[tmpi], 'outside range')
                 return False
         # Now do robot-related checks.
-        ee_pos = self.robot.get_ee_pos()
+        ee_pos = self._robot.get_ee_pos()
         # Check whether ee is too high above the objects.
         if hasattr(self, '_max_object_z') and ee_pos[2] > 0.2+self._max_object_z:
-            if self._debug:
-                print('step', self._stepnum, 'ee_pos too high', ee_pos)
+            if self.debug:
+                print('step', self.stepnum, 'ee_pos too high', ee_pos)
             return False
         # Check that ee is above the table crate.
         if (ee_pos[0]<-0.5 or ee_pos[0]>0.5 or
             ee_pos[1]<-0.5 or ee_pos[1]>0.5):
-            if self._debug:
-                print('step', self._stepnum, 'ee_pos not in workspace', ee_pos)
+            if self.debug:
+                print('step', self.stepnum, 'ee_pos not in workspace', ee_pos)
             return False
         return True
 
@@ -515,7 +500,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
             assert(mass>0)
             props = [*rgba[0:3], *dims, shape, mass, restit,
                      lat_fric, rol_fric, spin_fric]
-            if self._debug:
+            if self.debug:
                 print('Loaded', object_file, 'at', object_poses[i],
                       'props', props)
             object_ids.append(obj_id)

@@ -13,10 +13,10 @@ from .rearrange_env import RearrangeEnv
 
 class FrankaRearrangeEnv(RearrangeEnv):
     def __init__(self, version, variant='Ycb',
-                 obs_resolution=64, obs_ptcloud=False,
                  rnd_init_pos=False, control_mode='torque',
+                 obs_resolution=64, obs_ptcloud=False,
                  debug=False, visualize=False):
-        self.robot = BulletManipulator(
+        robot = BulletManipulator(
             os.path.join('franka_robot', 'franka_small_fingers.urdf'),
             control_mode=control_mode,
             ee_joint_name='panda_joint7', ee_link_name='panda_hand',
@@ -27,15 +27,14 @@ class FrankaRearrangeEnv(RearrangeEnv):
             visualize=visualize, cam_dist=0.44, cam_yaw=90, cam_pitch=-65,
             cam_target=(0.05, 0, 0), default_ground=False)
         super(FrankaRearrangeEnv, self).__init__(
-            version=version, variant=variant,
-            obs_resolution=obs_resolution, obs_ptcloud=obs_ptcloud,
-            rnd_init_pos=rnd_init_pos, debug=debug)
+            version, variant, robot, rnd_init_pos,
+            obs_resolution, obs_ptcloud, debug)
         if visualize:
             pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_GUI, 1)
             pybullet.configureDebugVisualizer(
                 pybullet.COV_ENABLE_RGB_BUFFER_PREVIEW, 1)
-            self.robot.sim.resetDebugVisualizerCamera(  # was: cam dist=0.37
-                cameraDistance=0.44, cameraYaw=self.robot.cam_yaw,
+            robot.sim.resetDebugVisualizerCamera(  # was: cam dist=0.37
+                cameraDistance=0.44, cameraYaw=robot.cam_yaw,
                 cameraPitch=-65, cameraTargetPosition=(0.05, 0, 0))
         self.rnd_qpos_fxn = self.qpos_for_random_ee_pose
 

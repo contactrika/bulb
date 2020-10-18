@@ -49,26 +49,26 @@ class BlockOnInclineEnv(gym.Env, AuxEnv):
     LD_STATE_WFRIC_MAXS = np.array(
         [NVRNTS, NVRNTS, MAX_FRIC, MAX_THETA, CLIP_POS_X, CLIP_VEL])
 
-    def __init__(self, version, variant, obs_resolution, obs_ptcloud, scale,
-                 report_fric=False, randomize=True,
+    def __init__(self, version, variant, scale,
+                 randomize=True, report_fric=False,
+                 obs_resolution=None, obs_ptcloud=False,
                  debug=False, visualize=False):
+        max_episode_steps = 50
+        self._nskip = 4  # sim nskip steps at a time
+        super(BlockOnInclineEnv, self).__init__(
+            max_episode_steps, obs_resolution, obs_ptcloud, debug, visualize)
         self._version = version
         self._variant = variant
-        self._obs_resolution = obs_resolution  # e.g. 64 for 64x64 images
-        self._obs_ptcloud = obs_ptcloud  # whether obs should be point clouds
-        self._report_fric = report_fric
         self._randomize = randomize
-        self._debug = debug
-        self._visualize = visualize
+        self._report_fric = report_fric
         self._use_tn = True  # encode block position as length travelled
-        self._max_episode_steps = 50
-        self._nskip = 4  # sim nskip steps at a time
+        self._texture_id = 0
+        self._obj_mass = 0.05
+        self._fric = 0.5
+        # Construct the physics simulation object.
         self._sim = bc.BulletClient(
             connection_mode=pybullet.GUI if visualize else pybullet.DIRECT)
         self._sim.setAdditionalSearchPath(pybullet_data.getDataPath())
-        self._texture_id = 0; self._obj_mass = 0.05; self._fric = 0.5  # default
-        self._stepnum = 0
-        self._episode_rwd = 0.0
         # Load plane, block and incline.
         # Note that sim.loadTexture() does not work for default plane, but
         # seems to work for custom planes in the data folder.
@@ -116,33 +116,43 @@ class BlockOnInclineEnv(gym.Env, AuxEnv):
             self._dbg_txt1_id = self._sim.addUserDebugText(
                 text='_', textPosition=[0.7,0,0.57],
                 textSize=5, textColorRGB=[0,1,0])
-        self.aux_nms = BlockOnInclineEnv.dim_names(self._use_tn, self._report_fric)
-        if self._obs_resolution is None:
+        self._low_dim_state_names = self.compute_low_dim_state_names(
+            self._report_fric, self._use_tn)
+        if self.obs_resolution is None:
             self.observation_space = gym.spaces.Box(
-                0.0, 1.0, shape=[len(self.aux_nms)], dtype=np.float32)
-        elif self._obs_ptcloud:
-            state_sz = self._obs_resolution * 3  # 3D points in point cloud
+                0.0, 1.0, shape=[len(self._low_dim_state_names)],
+                dtype=np.float32)
+        elif self.obs_ptcloud:
+            state_sz = self.obs_resolution * 3  # 3D points in point cloud
             self.observation_space = gym.spaces.Box(
                 -1.0*BlockOnInclineEnv.PTCLOUD_BOX_SIZE*np.ones(state_sz),
                 BlockOnInclineEnv.PTCLOUD_BOX_SIZE*np.ones(state_sz))
         else:  # RGB images
             self.observation_space = gym.spaces.Box(  # channels: 3 color
-                0.0, 1.0, shape=[3, self._obs_resolution, self._obs_resolution],
+                0.0, 1.0, shape=[3, self.obs_resolution, self.obs_resolution],
                 dtype=np.float32)
         self.action_space = gym.spaces.Box(
             -2.0, 2.0, shape=[1], dtype=np.float32)
-        if debug>0: print('Created BlockOnInclineEnv')
+        if debug > 0: print('Created BlockOnInclineEnv')
+
+    @property
+    def low_dim_state_space(self):
+        return
+
+    @property
+    def low_dim_state_names(self):
+        return self._low_dim_state_names
 
     @staticmethod
-    def dim_names(use_tn, report_fric):  # low-dim state names
-        if report_fric:
-            static = ['texture_id', 'object_id', 'fric', 'theta']
+    def compute_low_dim_state_names(report_fric, use_tn):
+        lst = ['texture_id', 'version']
+        if report_fric: lst.append('friction')
+        lst.append('theta')
+        if use_tn:
+            lst.extend(['x', 'x_vel'])
         else:
-            static = ['texture_id', 'object_id', 'theta']
-        dynamic = ['x', 'x_vel']
-        if not use_tn:
-            dynamic = ['x', 'y', 'z', 'x_vel', 'y_vel', 'z_vel']
-        return static+dynamic
+            lst.append(['x', 'y', 'z', 'x_vel'])
+        return lst
 
     @staticmethod
     def load_incline(sim, version, variant):
@@ -181,18 +191,6 @@ class BlockOnInclineEnv(gym.Env, AuxEnv):
             sim.changeVisualShape(block_id, -1, rgbaColor=(*clr,1))
         return block_id
 
-    @property
-    def low_dim_state_space(self):
-        return
-
-    @property
-    def low_dim_state_names(self):
-        return
-
-    @property
-    def max_episode_steps(self):
-        return self._max_episode_steps
-
     def disconnect(self):
         self._sim.disconnect()
 
@@ -200,8 +198,7 @@ class BlockOnInclineEnv(gym.Env, AuxEnv):
         np.random.seed(seed)
 
     def reset(self):
-        self._stepnum = 0
-        self._episode_rwd = 0.0
+        self.reset_aggregators()
         if self._randomize:
             mins = np.array([BlockOnInclineEnv.MIN_MASS,
                              BlockOnInclineEnv.MIN_FRIC,
@@ -238,13 +235,15 @@ class BlockOnInclineEnv(gym.Env, AuxEnv):
         self._sim.resetBasePositionAndOrientation(
             self.block_id, BlockOnInclineEnv.OBS_INIT_POS.tolist(),
             pybullet.getQuaternionFromEuler(rnd_rpy))
-        init_step = 0; rnd_start = 0.05+np.random.rand(1)[0]*0.1
-        while init_step<self._max_episode_steps:
+        init_step = 0
+        block_pos = None
+        rnd_start = 0.05+np.random.rand(1)[0]*0.1
+        while init_step < self._max_episode_steps:
             self._sim.stepSimulation()  # initial fall
             block_pos, _ = self._sim.getBasePositionAndOrientation(self.block_id)
-            if block_pos[0]>rnd_start: break
+            if block_pos[0] > rnd_start: break
             init_step += 1
-        if self._debug: print('init_step', init_step, 'block_pos', block_pos)
+        if self.debug: print('init_step', init_step, 'block_pos', block_pos)
         return self.compute_obs()
 
     def step(self, action):
@@ -256,20 +255,17 @@ class BlockOnInclineEnv(gym.Env, AuxEnv):
                 self.block_id, -1, [0,0,act], [0,0,0], pybullet.LINK_FRAME)
             self._sim.stepSimulation()
         next_obs = self.compute_obs()
-        # Update internal counters.
-        self._stepnum += 1
         # Report reward starts and other info.
         block_pos, _ = self._sim.getBasePositionAndOrientation(self.block_id)
         rwd = self.compute_reward(block_pos)
-        self._episode_rwd += rwd
-        info = {}
-        done = (self._stepnum >= self._max_episode_steps or
-                block_pos[0] >= BlockOnInclineEnv.MAX_POS_X or
+        done = (block_pos[0] >= BlockOnInclineEnv.MAX_POS_X or
                 block_pos[0] <= BlockOnInclineEnv.MIN_POS_X or
                 np.abs(block_pos[1]) >= BlockOnInclineEnv.MAX_POS_Y)
-        if done:
-            info['episode'] = {'r': float(self._episode_rwd), 'l': self._stepnum}
-        if self._visualize:
+        done, info = self.update_aggregators(rwd, done)
+        if self.debug:
+            print('step', self.stepnum, 'action', action)
+            if self.obs_resolution is None: print('low_dim_state', next_obs)
+        if self.visualize:
             dbg_txt = '{:s} {:0.2f}'.format('<' if act<0 else '>', act)
             self._dbg_txt_id = self._sim.addUserDebugText(
                 text=dbg_txt, textPosition=[0.7,0,0.62], textSize=5,
@@ -282,7 +278,7 @@ class BlockOnInclineEnv(gym.Env, AuxEnv):
         return next_obs, rwd, done, info
 
     def compute_obs(self):
-        if self._obs_resolution is None:
+        if self.obs_resolution is None:
             obs = self.compute_low_dim_state()
         else:
             obs = self.render_obs()
@@ -303,7 +299,7 @@ class BlockOnInclineEnv(gym.Env, AuxEnv):
         block_vel_lin = np.array(block_vel[0])  # block_vel_ang = block_vel[1]
         if self._use_tn:
             pos_t = np.linalg.norm(block_pos - BlockOnInclineEnv.OBS_INIT_POS)
-            if block_pos[0]<BlockOnInclineEnv.MIN_POS_X: pos_t = 0
+            if block_pos[0] < BlockOnInclineEnv.MIN_POS_X: pos_t = 0
             v_t = np.linalg.norm(block_vel_lin)
             dyn_state = np.array([pos_t, v_t])
         else:
@@ -313,14 +309,14 @@ class BlockOnInclineEnv(gym.Env, AuxEnv):
             else BlockOnInclineEnv.LD_STATE_MINS
         maxs = BlockOnInclineEnv.LD_STATE_WFRIC_MAXS if self._report_fric \
             else BlockOnInclineEnv.LD_STATE_MAXS
-        if (raw_ld_state<mins).any() or (raw_ld_state>maxs).any():
-            if self._debug:
+        if (raw_ld_state < mins).any() or (raw_ld_state > maxs).any():
+            if self.debug:
                 print('clipping at step', self._stepnum, 'raw_ld_state')
                 print(raw_ld_state)
             raw_ld_state = np.clip(raw_ld_state, mins, maxs)
         ld_state = (raw_ld_state - mins)/(maxs-mins)
-        assert((ld_state>=0).all() and (ld_state<=1).all())
-        assert(ld_state.shape[0]==len(self.aux_nms))
+        assert((ld_state >= 0).all() and (ld_state <= 1).all())
+        assert(ld_state.shape[0] == len(self._low_dim_state_names))
         return ld_state
 
     def override_state(self, ld_state):
@@ -329,9 +325,9 @@ class BlockOnInclineEnv(gym.Env, AuxEnv):
     def render_obs(self, override_resolution=None, debug_out_dir=None):
         obs = render_utils.render_obs(
             self._sim, self._stepnum,
-            self._obs_resolution, override_resolution,
+            self.obs_resolution, override_resolution,
             self._cam_dist, self._cam_target,
             self._cam_pitch, self._cam_yaw,
-            self._obs_ptcloud, self._cam_object_ids, 'BlockOnIncline',
+            self.obs_ptcloud, self._cam_object_ids, 'BlockOnIncline',
             BlockOnInclineEnv.PTCLOUD_BOX_SIZE, debug_out_dir)
         return obs

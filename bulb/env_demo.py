@@ -51,7 +51,7 @@ def get_args():
                         help='Number of episodes')
     parser.add_argument('--debug', action='store_true',
                         help='Whether to print debug info')
-    parser.add_argument('--viz', action='store_true',
+    parser.add_argument('--visualize', action='store_true',
                         help='Visualize in PyBullet simulator')
     args = parser.parse_args()
     return args
@@ -60,12 +60,12 @@ def get_args():
 def main(args):
     assert('-v' in args.env_name)  # specify env version
     nm_core, nm_vrsn,  = args.env_name.split('-')
-    nm_core += 'Viz' if args.viz else 'Dbg' if args.debug else ''
+    nm_core += 'Viz' if args.visualize else 'Dbg' if args.debug else ''
     env = gym.make(nm_core+'-'+nm_vrsn); env.seed(args.seed)
     print('Created ', args.env_name, 'with observation_space',
           env.observation_space.shape, 'action_space', env.action_space.shape,
           'max_episode_steps', env.max_episode_steps)
-    play(env, args.num_episodes, args.debug, args.viz)
+    play(env, args.num_episodes, args.debug, args.visualize)
     env.close()
 
 

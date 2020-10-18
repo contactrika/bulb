@@ -11,8 +11,9 @@ This repository contains code for the environments presented in:
 }
 ```
 
-The environments implement [AuxEnv](bulb/envs/aux_env.py) interface, which
-enables reporting both high-dimensional state 
+The environments implement [AuxEnv](bulb/envs/aux_env.py) interface.
+
+This interface enables reporting both high-dimensional state 
 (RGB images or point clouds) and low-dimensional state 
 (e.g. robot joint angles, velocities, contacts).
  
@@ -33,7 +34,6 @@ environments to enable reporting both high-dimensional and low-dimensional state
 virtualenv -p `which python3` BULB_ENV
 source BULB_ENV/bin/activate
 pip install numpy
-pip install -e "git+https://github.com/contactrika/bo-svae-dc.git#egg=gym_bullet_extensions-0.1&subdirectory=gym-bullet-extensions"
 pip install -e .
 ```
 Note: the above instructions install numpy before other packages that
@@ -47,13 +47,13 @@ do gym registration).
 ```
 python -m bulb.env_demo \
   --env_name=ReacherRearrangeGeomIM64-v0 \
-  --num_episodes=10 --debug --viz
+  --num_episodes=10 --visualize
 
 python -m bulb.env_demo \
-  --env_name=YcbOnInclinePT1024-v0 --debug --viz
+  --env_name=YcbOnInclinePT1024-v0 --visualize
 
 python -m bulb.env_demo \
-  --env_name=YcbOnInclineLD-v3 --debug --viz
+  --env_name=GeomOnInclineLD-v3 --debug
 ```
 
 The pattern for env names is:
@@ -74,6 +74,13 @@ The robot names are used as a prefix to BaseEnvName.
 Replace *Ycb* with *Geom* to get envs with simple geometric shapes
 instead of objects from YCB meshes.
 
+Using ```--debug``` flag will cause the envs to print debug 
+information about state and actions and will make the demo also
+output png files with visualized imagse or point clouds to ```/tmp/```.
+
+Using ```--visualize``` will disable debug prints (since the behavior
+can be seen in the PyBullet simulator visualization).
+
 
 ### Benchmark Envs
 
@@ -91,11 +98,11 @@ The above have continuous action space and version v=0
 Examples:
 
 ```
-python -m bulb.env_demo --env_name=AntBulletEnvLD-v0 --debug --viz
+python -m bulb.env_demo --env_name=AntBulletEnvLD-v0 --visualize
 
-python -m bulb.env_demo --env_name=HalfCheetahBulletEnvIM64-v0 --debug --viz
+python -m bulb.env_demo --env_name=HalfCheetahBulletEnvIM64-v0 --visualize
 
-python -m bulb.env_demo --env_name=CartPoleBulletEnvPT1024-v1 --debug --viz
+python -m bulb.env_demo --env_name=CartPoleBulletEnvPT1024-v1 --visualize
 ```
 
 ### Envs with Point Clouds
@@ -113,7 +120,7 @@ works fine: ```CartPoleBulletEnvPT1024-v1```,
 Example of CartPole with 1024 points in a point cloud:
 
 ```
-python -m bulb.env_demo --env_name=CartPoleBulletEnvPT1024-v1 --viz --debug
+python -m bulb.env_demo --env_name=CartPoleBulletEnvPT1024-v1 --visualize
 ```
 
 ![CartPole_sm](misc/img/CartPole_sm.png)
@@ -127,7 +134,7 @@ the incline with the given force. The force and direction
 are visualized with a text annotation on the (debug) image.
 
 ```
-python -m bulb.env_demo --env_name=YcbOnInclinePT1024-v5 --viz --debug
+python -m bulb.env_demo --env_name=YcbOnInclinePT1024-v5 --visualize
 ```
 
 ![incline0_sm](misc/img/incline0_sm.png)
@@ -153,7 +160,7 @@ e.g. ```GeomOnInclineMdPT1024-v5```
 For envs with a simple reacher robot use:
 
 ```
-python -m bulb.env_demo --env_name=ReacherRearrangeOneYcbPT2048-v1 --viz --debug
+python -m bulb.env_demo --env_name=ReacherRearrangeOneYcbPT2048-v1 --visualize
 ```
 
 ![reacher0_sm](misc/img/reacher0_sm.png)
@@ -174,11 +181,8 @@ left (that is recorded at the start of the episode).
 * Can choose from versions 0-5 to get different objects and color textures
 
 ```
-python -m bulb.env_demo --env_name=ReacherRearrangeGeomPT1024-v0 --viz --debug
+python -m bulb.env_demo --env_name=ReacherRearrangeGeomPT1024-v0 --visualize
 ```
-
-Using ```--debug``` flag will cause the demo to output png
-files with visualized point clouds to ```/tmp/```.
 
 See example output images and point cloud visualizations in
 [misc/img](misc/img) folder.

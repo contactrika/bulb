@@ -39,10 +39,10 @@ for base_env_name in gym_envs:
                         env_id = base_env_name+sfx0+'BulletEnv'+sfx1+'-v'+str(env_v)
                         kwargs={'base_env_name':base_env_name,
                                 'env_v':env_v,
+                                'random_colors':random_colors,
                                 'obs_resolution':resolution,
                                 'obs_ptcloud':obs_ptcloud,
-                                'random_colors':random_colors,
-                                'debug': dbg==1, 'visualize': dbg==2}
+                                'debug': dbg == 1, 'visualize': dbg == 2}
                         register(id=env_id, entry_point='bulb.envs:AuxBulletEnv',
                                  kwargs=kwargs)
                         #print(env_id)
@@ -66,9 +66,9 @@ for robot in ['Reacher', 'Franka']:
                             nondeterministic=True,
                             kwargs={'version': version,
                                     'variant': variant,
+                                    'rnd_init_pos': True,
                                     'obs_resolution': resolution,
                                     'obs_ptcloud': obs_ptcloud,
-                                    'rnd_init_pos': True,
                                     'debug': dbg==1, 'visualize': dbg==2})
                         #print(env_id)
 
@@ -90,10 +90,11 @@ for variant in ['Ycb', 'Geom']:
                                  nondeterministic=True,
                                  kwargs={'version': version,
                                          'variant': variant,
-                                         'obs_resolution': resolution,
-                                         'obs_ptcloud': obs_ptcloud,
                                          'scale': scale,
                                          'randomize': True,
                                          'report_fric': False,
-                                         'debug': dbg==1, 'visualize': dbg==2})
+                                         'obs_resolution': resolution,
+                                         'obs_ptcloud': obs_ptcloud,
+                                         'debug': dbg == 1,
+                                         'visualize': dbg == 2})
                         #print(env_id)
