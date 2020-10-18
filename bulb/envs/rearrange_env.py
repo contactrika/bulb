@@ -108,7 +108,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
             if hasattr(self._robot, 'robot_id'):
                 self._cam_object_ids = [self._robot.robot_id]
             else:
-                assert(self._robot, 'info')
+                assert(hasattr(self._robot, 'info'))
                 self._cam_object_ids = [self._robot.info.robot_id]
             self._cam_object_ids.extend(self._object_ids)
         # Define obs and action space shapes.

@@ -1,7 +1,7 @@
 """
 A unified interface that reports high-dimensional observations
-(images, point clouds) and also adds low-dimensional state (joint angles)
-into info['low_dim_state'] that can be used for further analysis.
+(images, point clouds) and also can report low-dimensional state (joint angles)
+that can be used for further analysis.
 """
 
 from abc import ABC, abstractmethod
@@ -15,8 +15,7 @@ class AuxEnv(ABC):
                  obs_resolution: bool = None,
                  obs_ptcloud: bool = None,
                  debug: bool = False,
-                 visualize: bool = False,
-                 **kwargs):
+                 visualize: bool = False):
         self._max_episode_steps = max_episode_steps
         self._obs_resolution = obs_resolution
         self._obs_ptcloud = obs_ptcloud

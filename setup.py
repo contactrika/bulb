@@ -22,5 +22,5 @@ setup(name='bulb',
       # This is because PyBullet does not have numpy as a dependency, but if
       # it find it during its own install, then point it will do processing of
       # point clouds using numpy, which will be faster.
-      setup_requires=['numpy']
+      # setup_requires=['numpy']
       )
