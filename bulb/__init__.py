@@ -102,5 +102,3 @@ def register_all():
                                              'debug': dbg == 1,
                                              'visualize': dbg == 2})
                             #print(env_id)
-
-register_all()
