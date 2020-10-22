@@ -169,9 +169,13 @@ class AuxBulletEnv(gym.Env, AuxEnv):
         done, more_info = self.update_aggregators(rwd, done)
         info.update(more_info)
         if self.debug:  # print low-dim state
-            msg = f'pid {os.getpid():d} step {self.stepnum:d} act'
-            msg += np.array2string(action, precision=2,
-                                   formatter={'float_kind':'{:0.2f}'.format}, )
+            msg = f'pid {os.getpid():d} step {self.stepnum:d} act '
+            if isinstance(action, np.ndarray):
+                msg += np.array2string(
+                    action, precision=2,
+                    formatter={'float_kind':'{:0.2f}'.format}, )
+            else:
+                msg += str(action)
             for i in range(len(self.low_dim_state_names)):
                 msg += f' {self.low_dim_state_names[i]:s} {state[i]:0.4f}'
             print(msg)

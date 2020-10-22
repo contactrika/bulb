@@ -54,6 +54,7 @@ class ManipulatorInfo:
               '\n left_ee_jid', self.left_ee_jid,
               '\n left_finger_jids_lst', self.left_finger_jids_lst)
 
+
 class BulletManipulator:
     # https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=12077
     MAX_VELOCITY = 100.0  # 100 rad/s
@@ -127,7 +128,7 @@ class BulletManipulator:
         self._aux_sim.setPhysicsEngineParameter(
             fixedTimeStep=self.dt, numSolverIterations=5, numSubSteps=2)
         # Turn on FT sensors (for model-free gravity compensation compute).
-        #BulletManipulatorSim.toggle_ft_sensors(self.sim, self.robots, on=True)
+        # BulletManipulatorSim.toggle_ft_sensors(self.sim, self.robots, on=True)
         # Reset to initial position and visualize.
         self.rest_qpos = (self.info.joint_maxpos+self.info.joint_minpos)/2
         if rest_arm_qpos is not None:
@@ -168,15 +169,15 @@ class BulletManipulator:
                 joint_minpos.append(jlowlim); joint_maxpos.append(jhighlim)
                 joint_maxforce.append(jmaxforce); joint_maxvel.append(jmaxvel)
             jid = len(joint_ids)-1 # internal index (not pybullet id)
-            if jtype==pybullet.JOINT_REVOLUTE:
+            if jtype == pybullet.JOINT_REVOLUTE:
                 if (left_joint_suffix is not None and
                         jname.endswith(left_joint_suffix)):
                     left_arm_jids_lst.append(jid)
                 else:
                     arm_jids_lst.append(jid)
-            if jtype==pybullet.JOINT_PRISMATIC:
-                if (left_fing_link_prefix is not None and
-                    jname.startswith(left_fing_link_prefix)):
+            if jtype == pybullet.JOINT_PRISMATIC:
+                if ((left_fing_link_prefix is not None) and
+                        jname.startswith(left_fing_link_prefix)):
                     left_finger_jids_lst.append(jid)
                 else:
                     finger_jids_lst.append(jid)
