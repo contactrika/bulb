@@ -89,7 +89,7 @@ class AuxEnv(ABC):
         Low dimensional observation space. Similar to env.observation_space
         property (e.g. gym.spaces.Box).
         """
-        pass
+        return None
 
     @property
     @abstractmethod
@@ -97,7 +97,7 @@ class AuxEnv(ABC):
         """
         Short names for each dimension/entry in the low-dimensional state.
         """
-        pass
+        return None
 
     @abstractmethod
     def compute_low_dim_state(self):

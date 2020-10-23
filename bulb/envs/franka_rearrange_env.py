@@ -16,8 +16,10 @@ class FrankaRearrangeEnv(RearrangeEnv):
                  rnd_init_pos=False, control_mode='torque',
                  obs_resolution=64, obs_ptcloud=False,
                  debug=False, visualize=False):
+        data_path = os.path.join(os.path.split(__file__)[0], 'data')
         robot = BulletManipulator(
-            os.path.join('franka_robot', 'franka_small_fingers.urdf'),
+            robot_desc_file=os.path.join(
+                data_path, 'franka_robot', 'franka_small_fingers.urdf'),
             control_mode=control_mode,
             ee_joint_name='panda_joint7', ee_link_name='panda_hand',
             base_pos=[-0.7,0,0],
@@ -25,7 +27,7 @@ class FrankaRearrangeEnv(RearrangeEnv):
             dt=1.0/100.0, kp=([200.0]*7 + [1.0]*2), kd=([2.0]*7 + [0.1]*2),
             min_z=0.0,
             visualize=visualize, cam_dist=0.44, cam_yaw=90, cam_pitch=-65,
-            cam_target=(0.05, 0, 0), default_ground=False)
+            cam_target=(0.05, 0, 0))
         super(FrankaRearrangeEnv, self).__init__(
             version, variant, robot, rnd_init_pos,
             obs_resolution, obs_ptcloud, debug)

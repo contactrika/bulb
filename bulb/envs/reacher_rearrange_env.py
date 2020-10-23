@@ -24,7 +24,7 @@ class ReacherRearrangeEnv(RearrangeEnv):
                 base_pos=[0,0,0],
                 dt=1.0/100.0, kp=([200.0]*7 + [1.0]*2), kd=([2.0]*7 + [0.1]*2),
                 visualize=visualize, cam_dist=0.4, cam_yaw=90, cam_pitch=-89,
-                cam_target=(0.0, 0, 0), default_ground=False)
+                cam_target=(0.0, 0, 0))
             if visualize:
                 pybullet.configureDebugVisualizer(pybullet.COV_ENABLE_GUI, 1)
                 pybullet.configureDebugVisualizer(

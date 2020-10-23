@@ -68,7 +68,7 @@ class BulletManipulator:
                  left_rest_arm_qpos=None,
                  dt=1.0/240.0, kp=1.0, kd=0.1, min_z=0.0,
                  visualize=False, cam_dist=1.5, cam_yaw=25, cam_pitch=-35,
-                 cam_target=(0.5, 0, 0), default_ground=True, debug_level=0):
+                 cam_target=(0.5, 0, 0), debug_level=0):
         assert(control_mode in
                ('ee_position', 'position', 'velocity', 'torque'))
         self.control_mode = control_mode
@@ -94,23 +94,17 @@ class BulletManipulator:
             self.sim = bclient.BulletClient(connection_mode=pybullet.DIRECT)
         self._aux_sim = bclient.BulletClient(
             connection_mode=pybullet.DIRECT)
-        data_path = os.path.join(
-            os.path.split(__file__)[0], '..', 'envs', 'data')
         # Load ground.
-        if default_ground:
-            self.sim.setAdditionalSearchPath(pybullet_data.getDataPath())
-            self._aux_sim.setAdditionalSearchPath(pybullet_data.getDataPath())
-            ground_file = "plane.urdf"
-        else:
-            ground_file = os.path.join(data_path, 'plane_blue.urdf')
-        self.plane_id = self.sim.loadURDF(ground_file,[0,0,0])
-        self._aux_sim.loadURDF(ground_file, [0,0,0])
+        self.sim.setAdditionalSearchPath(pybullet_data.getDataPath())
+        self._aux_sim.setAdditionalSearchPath(pybullet_data.getDataPath())
+        self.plane_id = self.sim.loadURDF('plane.urdf', [0,0,0])
+        self._aux_sim.loadURDF('plane.urdf', [0,0,0])
         # Note: changing ground color doesn't work even for plane_transparent.urdf
         # pybullet.changeVisualShape(self.plane_id, -1, rgbaColor=[1, 1, 1, 1])
         #
         # Load robot from URDF.
-        if not os.path.isabs(robot_desc_file):
-            robot_desc_file = os.path.join(data_path, robot_desc_file)
+        assert os.path.isabs(robot_desc_file), 'Give absolute robot_desc_file'
+        print('robot_desc_file', robot_desc_file)
         self.info = self.load_robot(
             robot_desc_file, ee_joint_name, ee_link_name,
             left_ee_joint_name, left_ee_link_name,
@@ -226,48 +220,6 @@ class BulletManipulator:
         self.sim.resetDebugVisualizerCamera(
             cameraDistance=self.cam_dist, cameraYaw=self.cam_yaw,
             cameraPitch=self.cam_pitch, cameraTargetPosition=self.cam_target)
-
-    def load_objects_from_file(self, objects_file, object_poses, object_quats,
-                               object_masses=None, object_scales=None):
-        # Subclasses can call this method to load custom obstacles.
-        robot_description_folder = os.path.split(__file__)[0]
-        data_path = os.path.join(robot_description_folder, "data")
-        object_ids = []
-        # Note: setting useFixedBase=True for loadURDF() breaks collision
-        # detection, so we use another way to ensure obstacle is stationary.
-        for i in range(len(object_poses)):
-            fnm = objects_file
-            if isinstance(objects_file, list): fnm = objects_file[i]
-            if not os.path.isabs(fnm): fnm = os.path.join(data_path, fnm)
-            print('loading: ', fnm)
-            if fnm.endswith('.urdf'):
-                obj_id = self.sim.loadURDF(
-                    fnm, object_poses[i], object_quats[i])
-            elif fnm.endswith(('.sdf', '.xml')):
-                if fnm.endswith('.sdf'):
-                    obj_id = self.sim.loadSDF(fnm)[0]
-                else:  # MuJoCo xml
-                    obj_id = self.sim.loadMJCF(fnm)[0]
-                self.sim.resetBasePositionAndOrientation(
-                    obj_id, object_poses[i], object_quats[i])
-            elif fnm.endswith('.obj'):
-                obj_mass = 1.0 if object_masses is None else object_masses[i]
-                obj_scale = 1.0 if object_scales is None else object_scales[i]
-                viz_shape_id = self.sim.createVisualShape(
-                    shapeType=pybullet.GEOM_MESH, rgbaColor=None,
-                    fileName=fnm, meshScale=1.0)
-                col_shape_id = self.sim.createCollisionShape(
-                    shapeType=pybullet.GEOM_MESH, fileName=fnm, meshScale=1.0)
-                obj_id = self.sim.createMultiBody(
-                    baseMass=obj_mass, basePosition=object_poses[i],
-                    baseCollisionShapeIndex=col_shape_id,
-                    baseVisualShapeIndex=viz_shape_id,
-                    baseOrientation=object_quats[i])
-            else:
-                print('Unknown objects_file format', fnm)
-                assert(False)  # unknown objects_file format
-            object_ids.append(obj_id)
-        return object_ids
 
     def reset_objects(self, ids, poses, quats):
         for objid in range(len(ids)):
