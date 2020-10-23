@@ -103,7 +103,9 @@ class BulletManipulator:
         # pybullet.changeVisualShape(self.plane_id, -1, rgbaColor=[1, 1, 1, 1])
         #
         # Load robot from URDF.
-        assert os.path.isabs(robot_desc_file), 'Give absolute robot_desc_file'
+        if not os.path.isabs(robot_desc_file):
+            robot_desc_file = os.path.join(os.path.split(__file__)[0], '..',
+                                           'envs', 'data', robot_desc_file)
         print('robot_desc_file', robot_desc_file)
         self.info = self.load_robot(
             robot_desc_file, ee_joint_name, ee_link_name,
