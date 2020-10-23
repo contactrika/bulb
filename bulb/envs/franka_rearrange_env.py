@@ -58,7 +58,7 @@ class FrankaRearrangeEnv(RearrangeEnv):
         # Restrict the gripper to point mostly down (not above 90 deg).
         rpys = rnd_pos_ori[3:6]
         small_angle = np.pi/2
-        rid = 0  #  restrict roll (down)
+        rid = 0  # restrict roll (down)
         almost_down = np.pi-small_angle
         if np.abs(rpys[rid])<almost_down:
             rpys[rid] = almost_down*np.sign(rpys[rid])
