@@ -163,9 +163,10 @@ class Logger2:
     # Note: not using logging module from python, because it does not play
     # well with multiprocessing and tensorboardX (e.g. need to do TB imports
     # before the logger is initialized if using stdout and file handlers.
-    def __init__(self, save_path_prefix, use_tensorboardX=True):
+    def __init__(self, save_path_prefix, seed=0, use_tensorboardX=True):
         date_str = datetime.strftime(datetime.today(), "%y%m%d_%H%M%S")
-        save_path = os.path.join(os.path.expanduser(save_path_prefix), date_str)
+        save_path = os.path.join(
+            os.path.expanduser(save_path_prefix), date_str, 'seed_', str(seed))
         assert(not os.path.exists(save_path)); os.makedirs(save_path)
         log_fnm = os.path.join(save_path, 'log.txt')
         self._log_file = open(log_fnm, 'w', buffering=1)
