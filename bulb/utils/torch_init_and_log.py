@@ -166,7 +166,7 @@ class Logger2:
     def __init__(self, save_path_prefix, seed=None, use_tensorboardX=True):
         dir_str = datetime.strftime(datetime.today(), "%y%m%d_%H%M%S")
         if seed is not None:
-            dir_str += f'seed_{seed:d}'
+            dir_str += f'_seed_{seed:d}'
         save_path = os.path.join(os.path.expanduser(save_path_prefix), dir_str)
         assert(not os.path.exists(save_path)); os.makedirs(save_path)
         log_fnm = os.path.join(save_path, 'log.txt')
