@@ -22,7 +22,7 @@ class FrankaRearrangeEnv(RearrangeEnv):
             ee_joint_name='panda_joint7', ee_link_name='panda_hand',
             base_pos=[-0.7,0,0],
             rest_arm_qpos=[-0.0412, 0.5043, 0.0048, -2.6232, -0.1651, 3.1273, 0.9135],
-            dt=1.0/100.0, kp=([200.0]*7 + [1.0]*2), kd=([2.0]*7 + [0.1]*2),
+            dt=1.0/100.0, kp=([0.1]*7 + [1.0]*2), kd=([2.0]*7 + [0.1]*2),
             min_z=0.0,
             visualize=visualize, cam_dist=0.44, cam_yaw=90, cam_pitch=-65,
             cam_target=(0.05, 0, 0))

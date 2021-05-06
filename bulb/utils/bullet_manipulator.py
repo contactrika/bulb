@@ -390,6 +390,8 @@ class BulletManipulator:
         rbt_tgt_qvel = np.clip(
             tgt_qvel, -1.0*self.info.joint_maxvel, self.info.joint_maxvel)
         # PD example: https://github.com/bulletphysics/bullet3/issues/2152
+        # cpp implementation with example kp, kd values (line 1731):
+        # bullet3/examples/SharedMemory/b3RobotSimulatorClientAPI_NoDirect.cpp
         # ATTENTION: it is extremely important to set maximum forces when
         # executing PD control. This is not documented, but PyBullet seems
         # to have a memory corruption problem (when high torques are
@@ -402,8 +404,8 @@ class BulletManipulator:
                 jointIndices=self.info.joint_ids.tolist(),
                 targetPositions=rbt_tgt_qpos, targetVelocities=rbt_tgt_qvel,
                 controlMode=pybullet.POSITION_CONTROL,
-                positionGains=kps,  # e.g. 1.0
-                velocityGains=kds,  # e.g. 0.1
+                positionGains=kps,  # e.g. 0.1
+                velocityGains=kds,  # e.g. 1.0
                 forces=self.info.joint_maxforce)  # see page 22 of pybullet docs
         elif mode==pybullet.VELOCITY_CONTROL:
             self.sim.setJointMotorControlArray(
@@ -411,8 +413,8 @@ class BulletManipulator:
                 jointIndices=self.info.joint_ids.tolist(),
                 targetPositions=rbt_tgt_qpos, targetVelocities=rbt_tgt_qvel,
                 controlMode=pybullet.VELOCITY_CONTROL,
-                positionGains=kps,  # e.g. 1.0
-                velocityGains=kds,  # e.g. 0.1
+                positionGains=kps,  # e.g. 0.1
+                velocityGains=kds,  # e.g. 1.0
                 forces=self.info.joint_maxforce)  # see page 22 of pybullet docs
         else:  # PD_CONTROL
             self.sim.setJointMotorControlArray(
@@ -421,8 +423,8 @@ class BulletManipulator:
                 targetPositions=rbt_tgt_qpos.tolist(),
                 targetVelocities=rbt_tgt_qvel.tolist(),
                 controlMode=pybullet.PD_CONTROL,
-                positionGains=kps,  # e.g. 100.0
-                velocityGains=kds,  # e.g. 10.0
+                positionGains=kps,  # e.g. 0.1
+                velocityGains=kds,  # e.g. 1.0
                 forces=self.info.joint_maxforce.tolist())  # see docs page 22
         self.sim.stepSimulation()
         self.obey_joint_limits()
