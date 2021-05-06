@@ -99,7 +99,12 @@ class RearrangeEnv(gym.Env, AuxEnv):
         self._blank_texture_id = self._robot.sim.loadTexture(
             os.path.join(data_dir, 'table', 'table.png'))
         # Load objects.
-        res = self.load_objects(self._robot.sim, data_dir)
+        obj_lists = RearrangeEnv.OBJECT_LISTS[self._variant]
+        object_names = obj_lists[self._version % len(obj_lists)]
+        geom_colors = RearrangeEnv.GEOM_COLORS[self._version]
+        res = RearrangeEnv.load_objects(
+            self._robot.sim, object_names, RearrangeEnv.OBJECT_XYS,
+            geom_colors, z_offset=0, debug=self.debug)
         self._object_names, self._init_object_poses, self._init_object_quats, \
             self._object_ids, self._object_props, self._max_object_z = res
         # Initialize data needed for point cloud observations.
@@ -433,15 +438,13 @@ class RearrangeEnv(gym.Env, AuxEnv):
             return False
         return True
 
-    def load_objects(self, sim, data_dir):
-        obj_lists = RearrangeEnv.OBJECT_LISTS[self._variant]
-        object_names = obj_lists[self._version % len(obj_lists)]
+    @staticmethod
+    def load_objects(sim, object_names, xys,
+                     geom_colors=None, data_dir=None, z_offset=0, debug=False):
         # Make a list of object files, their properties,
         # initial positions and orientations.
         object_poses = []; object_quats = []
         object_files = []; object_masses = []; object_scales = []
-        geom_colors = RearrangeEnv.GEOM_COLORS[self._version]
-        xys = RearrangeEnv.OBJECT_XYS
         max_object_z = 0
         for i, nm in enumerate(object_names):
             info = YCB_OBJECT_INFOS[nm]
@@ -451,12 +454,14 @@ class RearrangeEnv(gym.Env, AuxEnv):
             object_files.append(fname)
             z = info['z']*info['s'][2]
             if z*2 > max_object_z: max_object_z = z*2  # assume cntr
-            object_poses.append(np.array([xys[i,0], xys[i,1], z]))
+            object_poses.append(np.array([xys[i,0], xys[i,1], z+z_offset]))
             object_quats.append(np.array(
                 pybullet.getQuaternionFromEuler(RearrangeEnv.OBJECT_EULERS[i])))
             object_masses.append(info['m'])
             object_scales.append(info['s'])
         # Load objects into PyBullet simulation.
+        if data_dir is None:
+            data_dir = os.path.join(os.path.split(__file__)[0], 'data')
         object_ids = []; object_props = []
         for i in range(len(object_files)):
             object_file = os.path.join(data_dir, object_files[i])
@@ -500,7 +505,7 @@ class RearrangeEnv(gym.Env, AuxEnv):
             assert(mass>0)
             props = [*rgba[0:3], *dims, shape, mass, restit,
                      lat_fric, rol_fric, spin_fric]
-            if self.debug:
+            if debug:
                 print('Loaded', object_file, 'at', object_poses[i],
                       'props', props)
             object_ids.append(obj_id)

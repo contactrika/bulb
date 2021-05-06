@@ -534,6 +534,7 @@ class BulletManipulator:
             if not ok:
                 if self.debug_level>0:
                     print('fixing joint', self.info.joint_ids[jid],
+                          self.info.joint_names[jid],
                           'from pos', qpos[jid], 'to', jpos)
                 self.sim.resetJointState(
                     bodyUniqueId=self.info.robot_id,
