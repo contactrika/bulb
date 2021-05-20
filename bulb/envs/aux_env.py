@@ -78,7 +78,7 @@ class AuxEnv(ABC):
         info = {}
         if self._stepnum == self._max_episode_steps: done = True
         if done:
-            info = {'r': float(self._episode_rwd), 'l': self._stepnum}
+            info['episode'] = {'r': float(self._episode_rwd), 'l': self._stepnum}
             if self._debug: print('tot_rwd {:.4f}'.format(self._episode_rwd))
         return done, info
 
